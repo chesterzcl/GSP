@@ -17,7 +17,7 @@ class input_param{
 		int min_sample,thread_num,analysis_mode;
 		string ann_flag,ann_file,var_list_file,pop_file,vcf_file,output_file;
 		set<string> pop1,pop2;
-		bool no_splicing,dist_mode,exhaust_disc_mode,exhaust_valid_mode,output_per_sample_gt;
+		bool no_splicing,dist_mode,exhaust_disc_mode,exhaust_valid_mode,output_per_sample_gt,bipop_mode,unipop_mode;
 
 		void reset_freq_param(){
 			pop1_upper=1;
@@ -31,6 +31,8 @@ class input_param{
 			exhaust_disc_mode=false;
 			exhaust_valid_mode=false;
 			output_per_sample_gt=false;
+			bipop_mode=false;
+			unipop_mode=false;
 		}
 
 		void print_input_parameters(){
@@ -153,7 +155,7 @@ class input_param{
 
 	private:
 		data_printer dp;
-		map<string,string> file_dict,param_dict;
+		map<string,string> file_dict,param_dict,analysis_dict;
 };
 
 void input_param::read_parameters(int argc, char const *argv[]){
@@ -198,20 +200,28 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			idx++;
 		}else if(cur_str=="--disc"){
 			exhaust_disc_mode=true;
-			param_dict["Analysis mode 1: "]="Exhaustive discovery mode";
+			analysis_dict["Analysis mode 1: "]="Exhaustive discovery mode";
 			idx++;
 		}else if(cur_str=="--valid"){
 			exhaust_valid_mode=true;
-			param_dict["Analysis mode 2: "]="Exhaustive validation mode";
+			analysis_dict["Analysis mode 2: "]="Exhaustive validation mode";
 			idx++;
 		}else if(cur_str=="--d-v"){
 			exhaust_disc_mode=true;
 			exhaust_valid_mode=true;
-			param_dict["Analysis mode 3: "]="Exhaustive discovery-validation mode";
+			analysis_dict["Analysis mode 3: "]="Exhaustive discovery-validation mode";
 			idx++;
 		}else if(cur_str=="--dist"){
 			dist_mode=true;
-			param_dict["Analysis mode 4: "]="Output variant frequency for all labeling group";
+			analysis_dict["Analysis mode 4: "]="Output variant frequency for all labeling group";
+			idx++;
+		}else if(cur_str=="--unique1"){
+			unipop_mode=true;
+			analysis_dict["Analysis mode 5: "]="Unique pattern search for all population";
+			idx++;
+		}else if(cur_str=="--unique2"){
+			bipop_mode=true;
+			analysis_dict["Analysis mode 6: "]="Unique pattern search for all population pairs";
 			idx++;
 		}else if(cur_str=="--mins"){
 			idx++;
@@ -227,6 +237,16 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			idx++;
 			pop1_upper=stod(argv[idx]);
 			param_dict["Pop1 upper frequency boundary: "]=to_string(pop1_upper);			
+			idx++;
+		}else if(cur_str=="--p2l"){
+			idx++;
+			pop2_lower=stod(argv[idx]);
+			param_dict["Pop2 lower frequency boundary: "]=to_string(pop2_lower);			
+			idx++;
+		}else if(cur_str=="--p2u"){
+			idx++;
+			pop2_upper=stod(argv[idx]);
+			param_dict["Pop2 upper frequency boundary: "]=to_string(pop2_upper);			
 			idx++;
 		}else if(cur_str=="--no-splicing"){
 			idx++;
@@ -244,6 +264,11 @@ void input_param::read_parameters(int argc, char const *argv[]){
 		cout<<"--"<<i->first<<i->second<<endl;
 	}
 
+	cout<<"Analysis mode: "<<endl;
+	for (map<string,string>::iterator i = analysis_dict.begin(); i !=analysis_dict.end(); ++i){
+		cout<<"--"<<i->first<<i->second<<endl;
+	}	
+
 	cout<<"Analysis parameters: "<<endl;
 	for (map<string,string>::iterator i = param_dict.begin(); i !=param_dict.end(); ++i){
 		cout<<"--"<<i->first<<i->second<<endl;
@@ -253,14 +278,18 @@ void input_param::read_parameters(int argc, char const *argv[]){
 }
 
 void input_param::launch_analysis_module(){
-	if(param_dict.count("Analysis mode 1: ")){
+	if(analysis_dict.count("Analysis mode 1: ")){
 		analysis_mode=1;
-	}else if(param_dict.count("Analysis mode 2: ")){
+	}else if(analysis_dict.count("Analysis mode 2: ")){
 		analysis_mode=2;
-	}else if(param_dict.count("Analysis mode 3: ")){
+	}else if(analysis_dict.count("Analysis mode 3: ")){
 		analysis_mode=3;
-	}else if(param_dict.count("Analysis mode 4: ")){
+	}else if(analysis_dict.count("Analysis mode 4: ")){
 		analysis_mode=4;
+	}else if (analysis_dict.count("Analysis mode 5: ")){
+		analysis_mode=5;
+	}else if (analysis_dict.count("Analysis mode 6: ")){
+		analysis_mode=6;
 	}
 }
 
