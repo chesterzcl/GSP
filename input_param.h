@@ -14,7 +14,7 @@ using namespace std;
 class input_param{
 	public:
 		double pop1_upper,pop1_lower,pop2_upper,pop2_lower;
-		int min_sample,thread_num,analysis_mode;
+		int min_sample,thread_num,analysis_mode,pop_num;
 		string ann_flag,ann_file,var_list_file,pop_file,vcf_file,output_file;
 		set<string> pop1,pop2;
 		bool no_splicing,dist_mode,exhaust_disc_mode,exhaust_valid_mode,output_per_sample_gt,bipop_mode,unipop_mode;
@@ -25,6 +25,7 @@ class input_param{
 			pop2_upper=1;
 			pop2_lower=0;
 			min_sample=3;
+			pop_num=0;
 			ann_flag="";
 			no_splicing=false;
 			dist_mode=false;
@@ -198,30 +199,30 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			ann_flag=argv[idx];
 			param_dict["Target annotation flag: "]=argv[idx];
 			idx++;
-		}else if(cur_str=="--disc"){
+		}else if(cur_str=="disc"){
 			exhaust_disc_mode=true;
 			analysis_dict["Analysis mode 1: "]="Exhaustive discovery mode";
 			idx++;
-		}else if(cur_str=="--valid"){
+		}else if(cur_str=="valid"){
 			exhaust_valid_mode=true;
 			analysis_dict["Analysis mode 2: "]="Exhaustive validation mode";
 			idx++;
-		}else if(cur_str=="--d-v"){
+		}else if(cur_str=="d-v"){
 			exhaust_disc_mode=true;
 			exhaust_valid_mode=true;
 			analysis_dict["Analysis mode 3: "]="Exhaustive discovery-validation mode";
 			idx++;
-		}else if(cur_str=="--dist"){
+		}else if(cur_str=="dist"){
 			dist_mode=true;
 			analysis_dict["Analysis mode 4: "]="Output variant frequency for all labeling group";
 			idx++;
-		}else if(cur_str=="--unique1"){
+		}else if(cur_str=="unique"){
 			unipop_mode=true;
 			analysis_dict["Analysis mode 5: "]="Unique pattern search for all population";
 			idx++;
-		}else if(cur_str=="--unique2"){
-			bipop_mode=true;
-			analysis_dict["Analysis mode 6: "]="Unique pattern search for all population pairs";
+		}else if(cur_str=="freq"){
+			unipop_mode=true;
+			analysis_dict["Analysis mode 6: "]="Flexible frequency analysis mode";
 			idx++;
 		}else if(cur_str=="--mins"){
 			idx++;
@@ -248,6 +249,11 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			pop2_upper=stod(argv[idx]);
 			param_dict["Pop2 upper frequency boundary: "]=to_string(pop2_upper);			
 			idx++;
+		}else if(cur_str=="--popnum"){
+			idx++;
+			pop_num=stoi(argv[idx]);
+			param_dict["Number of subpopulations included for shared pattern discovery: "]=to_string(pop_num);			
+			idx++;
 		}else if(cur_str=="--no-splicing"){
 			idx++;
 			no_splicing=true;
@@ -259,15 +265,15 @@ void input_param::read_parameters(int argc, char const *argv[]){
 		}
 	}
 
+	cout<<"Analysis mode: "<<endl;
+	for (map<string,string>::iterator i = analysis_dict.begin(); i !=analysis_dict.end(); ++i){
+		cout<<i->second<<endl;
+	}	
+
 	cout<<"File parameters: "<<endl;
 	for (map<string,string>::iterator i = file_dict.begin(); i !=file_dict.end(); ++i){
 		cout<<"--"<<i->first<<i->second<<endl;
 	}
-
-	cout<<"Analysis mode: "<<endl;
-	for (map<string,string>::iterator i = analysis_dict.begin(); i !=analysis_dict.end(); ++i){
-		cout<<"--"<<i->first<<i->second<<endl;
-	}	
 
 	cout<<"Analysis parameters: "<<endl;
 	for (map<string,string>::iterator i = param_dict.begin(); i !=param_dict.end(); ++i){
@@ -288,8 +294,6 @@ void input_param::launch_analysis_module(){
 		analysis_mode=4;
 	}else if (analysis_dict.count("Analysis mode 5: ")){
 		analysis_mode=5;
-	}else if (analysis_dict.count("Analysis mode 6: ")){
-		analysis_mode=6;
 	}
 }
 
