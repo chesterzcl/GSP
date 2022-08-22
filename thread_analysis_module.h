@@ -216,13 +216,13 @@ class thread_analysis_module{
 					gt_str=str_vec_pair.first[1];
 					pop_rst_vec=str_vec_pair.second;
 					//output data
-					if(param.dist_mode){
-						ul.lock();
-						output<<line_mark<<'\t'<<freq_str<<endl;
-						var_num++;
-						g_ready=false;
-						ul.unlock();
-					}else{
+					// if(param.dist_mode){
+					// 	ul.lock();
+					// 	output<<line_mark<<'\t'<<freq_str<<endl;
+					// 	var_num++;
+					// 	g_ready=false;
+					// 	ul.unlock();
+					// }else{
 						if(param.exhaust_valid_mode){
 							if (ind_vec[0]!=0&&ind_vec[4]==0){
 								if(ind_vec[6]==0){
@@ -244,7 +244,7 @@ class thread_analysis_module{
 								}
 							}
 						}
-					}
+					// }
 				}
 			}
 		}
@@ -344,7 +344,7 @@ class thread_analysis_module{
 
 		//Exhaustive discovery module
 
-		void ed_variant_reader(int j,pop_data pop,input_param param,var_list& var,ann_data ann){
+		void ed_variant_reader(int j,pop_data pop,input_param param,var_list& var,ann_data ann,int thread_num){
 			input.open(input_ad);
 			check_file_open_status(input,input_ad);
 			output.open(temp_ad);
@@ -359,9 +359,16 @@ class thread_analysis_module{
 			while(getline(input,line)){
 				if(line[0]!='#'){
 					if(line_cter%100000==0){
-						cout<<line_cter<<" variants processed."<<endl;
+						cout<<line_cter<<" total variants processed."<<endl;
 					}
 					line_cter++;
+					var_cter=sp_q.size();
+					while(sp_q.size()>=(thread_num-1)*300000){
+						this_thread::sleep_for(chrono::milliseconds(1000));
+						cout<<sp_q.size()<<" in-memory variants currently waiting for processing..."<<endl;
+						cout<<"Processing speed "<<(var_cter-sp_q.size())*6<<" variants/min."<<endl;
+						var_cter=sp_q.size();
+					}
 					if(param.ann_flag.length()>0){
 						ann_str=find_str_after_nth_char(line,7,'\t');
 						if(find_str_after_nth_char(ann_str,1,'|').find(param.ann_flag)!=string::npos){
@@ -445,20 +452,28 @@ class thread_analysis_module{
 					pop_rst_vec=str_vec_pair.second;
 					pop_rst_vec.push_back(to_string(line_mark));
 					//output data
-					if(ind_vec[5]==0&&ind_vec[4]==0){
-						if(param.analysis_mode==3){
-							ul.lock();
-							var.var_pop_mat.push_back(pop_rst_vec);
-							output<<line_mark<<'\t'<<freq_str<<endl;
-							var_num++;
-							g_ready=false;
-							ul.unlock();
-						}else{
-							ul.lock();
-							output<<line_mark<<'\t'<<freq_str<<endl;
-							var_num++;
-							g_ready=false;
-							ul.unlock();
+					if(param.dist_mode){
+						ul.lock();
+						output<<line_mark<<'\t'<<freq_str<<endl;
+						var_num++;
+						g_ready=false;
+						ul.unlock();
+					}else{
+						if(ind_vec[5]==0&&ind_vec[4]==0){
+							if(param.analysis_mode==3){
+								ul.lock();
+								var.var_pop_mat.push_back(pop_rst_vec);
+								output<<line_mark<<'\t'<<freq_str<<endl;
+								var_num++;
+								g_ready=false;
+								ul.unlock();
+							}else{
+								ul.lock();
+								output<<line_mark<<'\t'<<freq_str<<endl;
+								var_num++;
+								g_ready=false;
+								ul.unlock();
+							}
 						}
 					}
 				}
@@ -539,7 +554,7 @@ class thread_analysis_module{
 
 		void unipop_data_loader(pop_data pop,input_param param,var_list& var,ann_data ann){
 			string ip_str,freq_str,gt_str;
-			int row_mark,line_mark;
+			int line_mark;
 			vector<string> line_vec,pop_rst_vec;
 			pair<string,int > q_pair;
 			pair<vector<string>,vector<string> > str_vec_pair;
@@ -562,20 +577,12 @@ class thread_analysis_module{
 					vector<int> ind_vec;
 					if(param.analysis_mode==5){
 						if(!param.no_splicing){
-							str_vec_pair=discover_unique_variant(pop,param,var,ann,line_vec,pop_vec,row_mark,ind_vec);
+							str_vec_pair=discover_unique_variant(pop,param,var,ann,line_vec,pop_vec,ind_vec);
 						}else{
 							if (ann.gene_transcript_dict[read_char_delim_str(line_vec[7],'|')[3]].size()==1){
-								str_vec_pair=discover_unique_variant(pop,param,var,ann,line_vec,pop_vec,row_mark,ind_vec);
+								str_vec_pair=discover_unique_variant(pop,param,var,ann,line_vec,pop_vec,ind_vec);
 							}
 						}						
-					}else{
-						if(!param.no_splicing){
-
-						}else{
-							if (ann.gene_transcript_dict[read_char_delim_str(line_vec[7],'|')[3]].size()==1){
-
-							}
-						}		
 					}
 
 					freq_str=str_vec_pair.first[0];
@@ -595,7 +602,7 @@ class thread_analysis_module{
 			}
 		}
 
-		pair<vector<string>,vector<string> > discover_unique_variant(pop_data pop,input_param param,var_list& var,ann_data ann,vector<string> line_vec,vector<string> pop_vec,int row_mark,vector<int>& ind_vec){
+		pair<vector<string>,vector<string> > discover_unique_variant(pop_data pop,input_param param,var_list& var,ann_data ann,vector<string> line_vec,vector<string> pop_vec,vector<int>& ind_vec){
 			int ind1=1,ind2=1,ind3=1,ind4=1,ind5=1,valid_ind1=0,valid_ind2=0;
 			int total_num,case_num,total_num2,case_num2,pop1_num=0,pop_neither_num=0;
 			double freq;
@@ -675,11 +682,132 @@ class thread_analysis_module{
 			return make_pair(temp_vec2,temp_vec);
 		}
 
+		//Variants aggregation analysis module
+
+		void gene_data_reader(pop_data pop,input_param param,var_list& var,ann_data ann){
+			input.open(input_ad);
+			check_file_open_status(input,input_ad);
+			output.open(temp_ad);
+			check_file_open_status(output,output_ad);
+			int line_cter=1,var_cter;
+			string line,chr_str,pos_str,ann_str;
+			main_analysis_module main;
+			auto start=chrono::high_resolution_clock::now();
+			main.output_file_header(output,var,param,pop,pop_vec);			
+			cout<<endl<<"Output header generated, start analyzing variant data."<<endl;
+			var_num=0;
+			while(getline(input,line)){
+				if(line[0]!='#'){
+					if(line_cter%100000==0){
+						cout<<line_cter<<" variants processed."<<endl;
+					}
+					line_cter++;
+					if(param.ann_flag.length()>0){
+						ann_str=find_str_after_nth_char(line,7,'\t');
+						if(find_str_after_nth_char(ann_str,1,'|').find(param.ann_flag)!=string::npos){
+							pair<string,int> temp_pair=make_pair(line,line_cter);
+							unique_lock<mutex> ul(ip_mutex);
+							sp_q.push(temp_pair);
+							g_ready=true;
+							ul.unlock();
+							g_cv.notify_all();										
+						}
+					}else{
+						pair<string,int > temp_pair=make_pair(line,line_cter);
+						unique_lock<mutex> ul(ip_mutex);
+						sp_q.push(temp_pair);
+						g_ready=true;
+						ul.unlock();
+						g_cv.notify_all();	
+					}
+				}
+			}
+			input.close();
+			cout<<"All "<<line_cter-1<<" variants scanned. Waiting for frequency calculation to be completed..."<<endl;
+			var_cter=sp_q.size();
+			cout<<var_cter<<" variants remained for processing..."<<endl;
+			while(sp_q.size()!=0){
+				this_thread::sleep_for(chrono::milliseconds(10000));
+				cout<<sp_q.size()<<" variants remained for processing...Processing speed "<<(var_cter-sp_q.size())*6<<" variants/min."<<endl;
+				var_cter=sp_q.size();
+			}
+			cout<<"Frequency calculation completed. ";
+			auto end=chrono::high_resolution_clock::now();
+			auto duration = chrono::duration_cast<chrono::seconds>(end - start);
+			cout<<"Time lapsed: "<<duration.count()<<" seconds."<<endl<<endl;
+			completed=true;
+			g_cv.notify_all();
+			g_ready=true;
+			//output per_gene_data
+			for(unordered_map<string,unordered_map<int,int> >::iterator i=gene_mutation_dict.begin();i!=gene_mutation_dict.end();++i){
+				output<<i->first<<endl;
+				for (int j = 0; j < pop_vec.size(); ++j){
+					
+				}
+			}
+			output.close();
+			cout<<"A total of "<<var_num<<"  variant output."<<endl;
+		}
+
+		void gene_data_loader(pop_data pop,input_param param,var_list& var,ann_data ann){
+			string ip_str,gene;
+			int line_mark;
+			vector<string> line_vec,pop_rst_vec;
+			pair<string,int > q_pair;
+			pair<string,unordered_map<string,int> > mutation_pair;
+			unordered_map<int,int> mutation_dict;
+			while(true){
+				if(completed){
+					break;
+				}
+				unique_lock<mutex> ul(ip_mutex);
+				if(sp_q.size()==0){
+					g_cv.wait(ul,[](){return g_ready;});
+				}else{
+					q_pair=sp_q.front();
+					sp_q.pop();
+					ul.unlock();
+					//main analysis
+					ip_str=q_pair.first;
+					line_mark=q_pair.second;
+					line_vec=read_char_delim_str(ip_str,'\t');
+					vector<int> ind_vec;
+					if(param.analysis_mode==7){
+						if(!param.no_splicing){
+							mutation_dict=count_variant_num_by_gene(pop,param,var,ann,line_vec,pop_vec);
+						}else{
+							if (ann.gene_transcript_dict[read_char_delim_str(line_vec[7],'|')[3]].size()==1){
+								mutation_dict=count_variant_num_by_gene(pop,param,var,ann,line_vec,pop_vec);
+							}
+						}						
+					}
+					gene=find_str_after_nth_char(line_vec[7],3,'|');
+					//output data
+					//Need check
+					ul.lock();
+					for (int i = 8; i < line_vec.size(); ++i){
+						gene_mutation_dict[gene][i]+=mutation_dict[i];
+					}
+					var_num++;
+					g_ready=false;
+					ul.unlock();
+				}						
+			}
+		}
+
+		unordered_map<int,int> count_variant_num_by_gene(pop_data pop,input_param param,var_list& var,ann_data ann,vector<string> line_vec,vector<string> pop_vec){
+			unordered_map<int,int> mutation_dict;
+			for (int i = 8; i < line_vec.size(); ++i){
+				mutation_dict[i]=check_genotype(line_vec[i]);
+			}
+			return mutation_dict;
+		}
+
 		//Analysis launcher
 		
 		void multi_thread_freq_analysis(int t){
-			if(param.analysis_mode==3||param.analysis_mode==1){
-				thread t1(&thread_analysis_module::ed_variant_reader,this,0,pop,param,ref(var),ann);
+			if(param.analysis_mode==3||param.analysis_mode==1||param.analysis_mode==4){
+				thread t1(&thread_analysis_module::ed_variant_reader,this,0,pop,param,ref(var),ann,t);
 				for (int i = 1; i < t; ++i){
 					th_vec.push_back(thread(&thread_analysis_module::ed_freq_data_loader,this,i,pop,param,ref(var),ann));
 				}
@@ -687,7 +815,7 @@ class thread_analysis_module{
 				for (int i = 0; i < th_vec.size(); ++i){
 					th_vec[i].join();
 				}	
-			}else if(param.analysis_mode==2){
+			}else if(param.analysis_mode==2||param.analysis_mode==6){
 				thread t1(&thread_analysis_module::variant_data_reader,this,0,pop,param,ref(var),ann);
 				for (int i = 1; i < t; ++i){
 					th_vec.push_back(thread(&thread_analysis_module::freq_data_loader,this,i,pop,param,ref(var),ann));
@@ -697,9 +825,18 @@ class thread_analysis_module{
 					th_vec[i].join();
 				}					
 			}else if(param.analysis_mode==5){
-				thread t1(&thread_analysis_module::ed_variant_reader,this,0,pop,param,ref(var),ann);
+				thread t1(&thread_analysis_module::ed_variant_reader,this,0,pop,param,ref(var),ann,t);
 				for (int i = 1; i < t; ++i){
 					th_vec.push_back(thread(&thread_analysis_module::unipop_data_loader,this,pop,param,ref(var),ann));
+				}
+				t1.join();
+				for (int i = 0; i < th_vec.size(); ++i){
+					th_vec[i].join();
+				}	
+			}else if(param.analysis_mode==7){
+				thread t1(&thread_analysis_module::gene_data_reader,this,pop,param,ref(var),ann);
+				for (int i = 1; i < t; ++i){
+					th_vec.push_back(thread(&thread_analysis_module::gene_data_loader,this,pop,param,ref(var),ann));
 				}
 				t1.join();
 				for (int i = 0; i < th_vec.size(); ++i){
@@ -715,6 +852,7 @@ class thread_analysis_module{
 		string input_ad,output_ad,temp_ad;
 		bool completed=false;
 		int var_num=0,row_cur=0;
+		unordered_map<string,unordered_map<int,int> > gene_mutation_dict;
 		unsigned int th_num=thread::hardware_concurrency();
 		vector<int> cter_vec;
 		vector<string> pop_vec;
