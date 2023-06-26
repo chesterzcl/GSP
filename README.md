@@ -3,7 +3,8 @@
 ## Description
 We provide a command-line tool used for fast and efficient whole-genome scale genetic signature discovery.
 
-An successful application of this tool was detailed described in :
+One successful application of this tool was described in :
+
 Li, Z., Wang, Z., Chen, Z. et al. Systematically identifying genetic signatures including novel SNP-clusters, nonsense variants, frame-shift INDELs, and long STR expansions that potentially link to unknown phenotypes existing in dog breeds. BMC Genomics 24, 302 (2023)
 
 
