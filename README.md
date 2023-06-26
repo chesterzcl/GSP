@@ -1,7 +1,11 @@
 # Genetic Signature EXPlorer (GSEXP)
 
 ## Description
-We provide a command-line tool used for fast and efficient whole-genome scale genetic signature discovery.
+We provide a command-line tool used for fast and efficient whole-genome scale genetic signature discovery. In brief, this tool is a population-frequency based scanner that can prioritize all-category genetic signatures exclusively presented in given population(s). This tool was implemented in a multi-threaded mode to deal with large population-scale whole genome sequencing(WGS) data. Three customizable modules allow this tool to fulfill different reserach purposes. They are:
+1. Annotation flag
+2.
+3.
+
 
 One successful application of this tool was described in :
 
@@ -44,6 +48,6 @@ unique \
 --popnum 1 \
 --p1l 0.9 --p1u 1.0 --p2l 0.0 --p2u 0.1
 ```
-After invoking the tool, it will print all interpreted arguments before starting analysis.
+After invoking the tool, sucessfully interpreted arguments will be printed out before analysis.
 
 For a more detailed guide to use the tool, please move to the wiki section of this repo.
