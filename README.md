@@ -3,6 +3,10 @@
 ## Description
 We provide a command-line tool used for fast and efficient whole-genome scale genetic signature discovery.
 
+An successful application of this tool was detailed described in :
+Li, Z., Wang, Z., Chen, Z. et al. Systematically identifying genetic signatures including novel SNP-clusters, nonsense variants, frame-shift INDELs, and long STR expansions that potentially link to unknown phenotypes existing in dog breeds. BMC Genomics 24, 302 (2023)![image](https://github.com/Chester-ZcL/PopFreq/assets/109381632/3b31a803-31f2-44eb-827e-9073f8291171)
+
+
 ## Key Features
 1. Basic variant filtering and extraction based on annotation flags.
 2. Can calcualte and display variant frequency by user-defined sample groups.
