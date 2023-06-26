@@ -16,6 +16,7 @@ class pop_data{
 		unordered_map<string,set<int> > pop_col_dict;
 		unordered_map<string,int> sample_col_dict;
 		unordered_map<int,string> col_sample_dict;
+		unordered_map<int,double> col_depth_dict;
 
 		pop_data(){}
 		pop_data(const pop_data &p1){
@@ -24,6 +25,25 @@ class pop_data{
 			pop_col_dict=p1.pop_col_dict;
 			sample_col_dict=p1.sample_col_dict;
 			col_sample_dict=p1.col_sample_dict;
+			col_depth_dict=p1.col_depth_dict;
+		}
+
+		void load_sample_depth_sumstats(string input_address){
+			input.open(input_address);
+			check_file_open_status(input,input_address);
+			cout<<"Loading sample depth data..."<<endl;	
+			col_depth_dict.clear();
+			while(getline(input,line)){
+				line_vec=read_char_delim_str(line,'\t');
+				if(!sample_col_dict.count(line_vec[0])){
+					cout<<"Can't find sample: "<<line_vec[0]<<" in the dataset."<<endl;
+					cout<<"Shut down the engine."<<endl;
+					exit(0);
+				}
+				col_depth_dict[sample_col_dict[line_vec[0]]]=stod(line_vec[1])-2*stod(line_vec[2]);
+			}
+			cout<<"Sample read depth load complete."<<endl<<endl;
+
 		}
 
 		void load_population_data(string input_address){

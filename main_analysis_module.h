@@ -14,11 +14,13 @@ class main_analysis_module{
 
 		void output_file_header(ofstream& output,var_list& var,input_param param,pop_data pop,vector<string>& pop_vec){
 			string temp_str;
-			output<<"#CHROMOSOME"<<'\t'<<"POSITION"<<'\t'<<"GENE"<<'\t'<<"MUTATION TYPE"<<'\t'<<"MUTATION POSITION"<<'\t'<<"AMINO ACID CHANGE";
-			if(param.dist_mode||param.exhaust_disc_mode||param.unipop_mode||param.bipop_mode){
+			output<<"#Chromosome"<<'\t'<<"Position"<<'\t'<<"Gene"<<'\t'<<"Variant Type"<<'\t'<<"Mutation Position"<<'\t'<<"Amino Acid Change";
+			if(param.dist_mode||param.exhaust_disc_mode||param.unipop_mode||param.bipop_mode||param.gene_mode||param.STR_mode){
 				for (unordered_map<string,set<string> >::iterator i =  pop.pop_dict.begin(); i != pop.pop_dict.end(); ++i){
-					output<<'\t'<<i->first;
-					pop_vec.push_back(i->first);
+					if(i->second.size()>=param.min_sample){
+						output<<'\t'<<i->first;
+						pop_vec.push_back(i->first);
+					}
 				}
 				output<<endl;
 			}else{

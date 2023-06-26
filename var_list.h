@@ -50,6 +50,52 @@ class var_list{
 			input.close();
 		}
 
+		void load_ev_variant_data(string input_address){
+			input.open(input_address);
+			vector<string> temp_vec(2);
+			check_file_open_status(input,input_address);
+			cout<<"Loading variant list..."<<endl;
+			string chr_str,pos_str;
+			var_mat.clear();
+			var_pop_mat.clear();
+			var_gt_mat.clear();
+			line_cter=1;
+			while(getline(input,line)){
+				if(line[0]!='#'){
+					if(line_cter%100000==0){
+						cout<<line_cter<<" variants scanned."<<endl;
+					}
+					// chr_str=find_str_after_nth_char(line,0,'\t');
+					// pos_str=find_str_after_nth_char(line,1,'\t');
+					// temp_vec[0]=chr_str;
+					// temp_vec[1]=pos_str;
+					line_vec=read_char_delim_str(line,'\t');
+					var_mat.push_back(line_vec);
+					line_cter++;
+				}
+			}
+			cout<<"Variant list loading complete. A total of "<<line_cter-1<<" variants loaded."<<endl<<endl;
+			input.close();
+		}
+
+		void output_var_pop_file(string output_address){
+			if(var_pop_mat.size()==0){
+				cout<<"Variant population matrix not detected. End outputing."<<endl;
+				return;
+			}
+			output.open(output_address);
+			check_file_open_status(output,output_address);
+			cout<<"Outputing variant population file..."<<endl;
+			for (int i = 0; i < var_pop_mat.size(); ++i){
+				for (int j = 0; j < var_pop_mat[i].size(); ++j){
+					output<<var_pop_mat[i][j]<<'\t';
+				}
+				output<<endl;
+			}
+			cout<<"Variant population file outputed."<<endl;
+			output.close();
+		}
+
 		void sort_var_pop_mat(){
 			int cur_idx,temp_int;
 			vector<string> cur_vec;

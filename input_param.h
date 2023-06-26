@@ -13,27 +13,49 @@ using namespace std;
 
 class input_param{
 	public:
-		double pop1_upper,pop1_lower,pop2_upper,pop2_lower;
-		int min_sample,thread_num,analysis_mode,pop_num;
-		string ann_flag,ann_file,var_list_file,pop_file,vcf_file,output_file;
-		set<string> pop1,pop2;
-		bool no_splicing,dist_mode,exhaust_disc_mode,exhaust_valid_mode,output_per_sample_gt,bipop_mode,unipop_mode;
+		double pop1_upper,pop1_lower,pop2_upper,pop2_lower,af,sample_frac;
+		int min_sample,min_sample_tar,min_sample_ref,thread_num,analysis_mode,pop_num,min_depth,max_admix_pop,max_homo_pop,seed,min_rep_size,rep_num;
+		string ann_flag,ann_file,var_list_file,pop_file,vcf_file,output_file,depth_file;
+		set<string> pop1,pop2,pop_all;
+		bool StrPrint,isGS,isEXP,no_splicing,kmeans,flip,dist_mode,exhaust_disc_mode,exhaust_valid_mode,output_per_sample_gt,bipop_mode,unipop_mode,gene_mode,unique_valid_mode,combine_all,STR_mode,INDEL_mode;
 
 		void reset_freq_param(){
+			min_depth=0;
 			pop1_upper=1;
 			pop1_lower=0;
 			pop2_upper=1;
 			pop2_lower=0;
 			min_sample=3;
+			min_sample_tar=-1;
+			min_sample_ref=-1;
+			min_rep_size=1;
+			max_admix_pop=0;
+			max_homo_pop=1;
+			seed=0;
+			sample_frac=1.0;
+			af=0.0;
 			pop_num=0;
+			rep_num=1;
 			ann_flag="";
+			var_list_file="";
+			depth_file="";
+			flip=false;
 			no_splicing=false;
 			dist_mode=false;
+			gene_mode=false;
 			exhaust_disc_mode=false;
 			exhaust_valid_mode=false;
 			output_per_sample_gt=false;
+			unique_valid_mode=false;
 			bipop_mode=false;
+			STR_mode=false;
+			INDEL_mode=false;
+			combine_all=false;
 			unipop_mode=false;
+			kmeans=false;
+			isEXP=false;
+			isGS=false;
+			StrPrint=false;
 		}
 
 		void print_input_parameters(){
@@ -135,8 +157,10 @@ class input_param{
 		void load_population_label(unordered_map<string,set<string> > b){
 			pop1.clear();
 			pop2.clear();
+			pop_all.clear();
 			for (unordered_map<string,set<string> >::iterator i = b.begin(); i!=b.end(); ++i){
 				pop1.insert(i->first);
+				pop_all.insert(i->first);
 			}
 		}
 
@@ -194,10 +218,25 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			ann_file=argv[idx];
 			file_dict["Annotation database file: "]=argv[idx];
 			idx++;
+		}else if(cur_str=="-d"){
+			idx++;
+			depth_file=argv[idx];
+			file_dict["Sample depth file: "]=argv[idx];
+			idx++;
 		}else if(cur_str=="--flag"){
 			idx++;
 			ann_flag=argv[idx];
 			param_dict["Target annotation flag: "]=argv[idx];
+			idx++;
+		}else if(cur_str=="--seed"){
+			idx++;
+			seed=stoi(argv[idx]);
+			param_dict["Random seed used for dataset partition: "]=argv[idx];
+			idx++;
+		}else if(cur_str=="--sample-frac"){
+			idx++;
+			sample_frac=stod(argv[idx]);
+			param_dict["Proportion of valid samples included in the analysis: "]=argv[idx];
 			idx++;
 		}else if(cur_str=="disc"){
 			exhaust_disc_mode=true;
@@ -224,10 +263,73 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			unipop_mode=true;
 			analysis_dict["Analysis mode 6: "]="Flexible frequency analysis mode";
 			idx++;
+		}else if(cur_str=="gene"){
+			gene_mode=true;
+			analysis_dict["Analysis mode 7: "]="Variant aggregation analysis by gene";
+			idx++;
+		}else if(cur_str=="uvalid"){
+			unique_valid_mode=true;
+			analysis_dict["Analysis mode 8: "]="Validate unique variants";
+			idx++;
+		}else if(cur_str=="STRdisc"){
+			STR_mode=true;
+			analysis_dict["Analysis mode 9: "]="Discover Short Tandem Repeats(STR)";
+			idx++;
 		}else if(cur_str=="--mins"){
 			idx++;
 			min_sample=stoi(argv[idx]);
-			param_dict["Minimum number of samples allowed for population inclusion "]=to_string(min_sample);			
+			param_dict["Minimum number of samples allowed for population inclusion: "]=to_string(min_sample);			
+			idx++;
+		}else if(cur_str=="--mins-tar"){
+			idx++;
+			min_sample_tar=stoi(argv[idx]);
+			param_dict["Minimum number of samples allowed for target population inclusion: "]=to_string(min_sample_tar);			
+			idx++;
+		}else if(cur_str=="--min-rep-size"){
+			idx++;
+			min_rep_size=stoi(argv[idx]);
+			param_dict["Minimum size of the repetitive units in STR: "]=to_string(min_rep_size);			
+			idx++;
+		}else if(cur_str=="--str-kmeans"){
+			kmeans=true;
+			param_dict["Choosing STR classification boundary using k-means"]="";
+			idx++;
+		}else if(cur_str=="--str-long"){
+			isEXP=true;
+			param_dict["Targetting STR with long expansions"]="";
+			idx++;
+		}else if(cur_str=="--GS"){
+			isGS=true;
+			param_dict["Targetting at GS"]="";
+			idx++;
+		}else if(cur_str=="--str-printall"){
+			StrPrint=true;
+			param_dict["Printing the header for all STR loci"]="";
+			idx++;
+		}else if(cur_str=="--repnum"){
+			idx++;
+			rep_num=stoi(argv[idx]);
+			param_dict["Cutoff point for number of the repetitive units in STR: "]=to_string(rep_num);			
+			idx++;
+		}else if(cur_str=="--mins-ref"){
+			idx++;
+			min_sample_ref=stoi(argv[idx]);
+			param_dict["Minimum number of samples allowed for reference population inclusion: "]=to_string(min_sample_ref);			
+			idx++;
+		}else if(cur_str=="--mind"){
+			idx++;
+			min_depth=stoi(argv[idx]);
+			param_dict["Minimum read depth for a variant to be included in the analysis: "]=to_string(min_depth);			
+			idx++;
+		}else if(cur_str=="--max-admix"){
+			idx++;
+			max_admix_pop=stoi(argv[idx]);
+			param_dict["Maximum number of admixed population allowed in the analysis: "]=to_string(max_admix_pop);			
+			idx++;
+		}else if(cur_str=="--max-homo-pop"){
+			idx++;
+			max_homo_pop=stoi(argv[idx]);
+			param_dict["Maximum number of homogeneous population allowed in the analysis: "]=to_string(max_homo_pop);			
 			idx++;
 		}else if(cur_str=="--p1l"){
 			idx++;
@@ -254,10 +356,27 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			pop_num=stoi(argv[idx]);
 			param_dict["Number of subpopulations included for shared pattern discovery: "]=to_string(pop_num);			
 			idx++;
+		}else if(cur_str=="--af"){
+			idx++;
+			af=stod(argv[idx]);
+			param_dict["Minumum minor allele frequency allowed for a site to be included: "]=to_string(af);			
+			idx++;
+		}else if(cur_str=="--combine-all"){
+			combine_all=true;
+			param_dict["Combine all populations during unique variant discovery "]="";			
+			idx++;
 		}else if(cur_str=="--no-splicing"){
 			idx++;
 			no_splicing=true;
 			param_dict["No spicing mode"]="";			
+		}else if(cur_str=="--flip"){
+			idx++;
+			flip=true;
+			param_dict["Flip the ref/alt allele"]="";			
+		}else if(cur_str=="--INDEL"){
+			idx++;
+			INDEL_mode=true;
+			param_dict["INDEL mode activated"]="";			
 		}else{
 			cout<<"Invalid argument: "<<cur_str<<endl;
 			cout<<"Tool terminated."<<endl;
@@ -268,7 +387,7 @@ void input_param::read_parameters(int argc, char const *argv[]){
 	cout<<"Analysis mode: "<<endl;
 	for (map<string,string>::iterator i = analysis_dict.begin(); i !=analysis_dict.end(); ++i){
 		cout<<i->second<<endl;
-	}	
+	}
 
 	cout<<"File parameters: "<<endl;
 	for (map<string,string>::iterator i = file_dict.begin(); i !=file_dict.end(); ++i){
@@ -276,9 +395,15 @@ void input_param::read_parameters(int argc, char const *argv[]){
 	}
 
 	cout<<"Analysis parameters: "<<endl;
-	for (map<string,string>::iterator i = param_dict.begin(); i !=param_dict.end(); ++i){
-		cout<<"--"<<i->first<<i->second<<endl;
-	}	
+	if(!analysis_dict.count("Analysis mode 4: ")){
+		for (map<string,string>::iterator i = param_dict.begin(); i !=param_dict.end(); ++i){
+			cout<<"--"<<i->first<<i->second<<endl;
+		}	
+	}else{
+		if(af!=0){
+			cout<<"--MAF: "<<af<<endl;
+		}
+	}
 	cout<<endl;
 
 }
@@ -292,8 +417,16 @@ void input_param::launch_analysis_module(){
 		analysis_mode=3;
 	}else if(analysis_dict.count("Analysis mode 4: ")){
 		analysis_mode=4;
-	}else if (analysis_dict.count("Analysis mode 5: ")){
+	}else if(analysis_dict.count("Analysis mode 5: ")){
 		analysis_mode=5;
+	}else if(analysis_dict.count("Analysis mode 6: ")){
+		analysis_mode=6;
+	}else if(analysis_dict.count("Analysis mode 7: ")){
+		analysis_mode=7;
+	}else if(analysis_dict.count("Analysis mode 8: ")){
+		analysis_mode=8;
+	}else if(analysis_dict.count("Analysis mode 9: ")){
+		analysis_mode=9;
 	}
 }
 

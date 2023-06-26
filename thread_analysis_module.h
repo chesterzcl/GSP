@@ -1,5 +1,6 @@
 #include<chrono>
 #include<mutex>
+#include<algorithm>
 #include<thread>
 #include<queue>
 #include<condition_variable>
@@ -24,6 +25,7 @@ class thread_analysis_module{
 		pop_data pop;
 		ann_data ann;
 		input_param param;
+		data_printer dp;
 
 		void load_thread_vec(){
 			cout<<th_num<<" cores detected."<<endl;
@@ -91,9 +93,41 @@ class thread_analysis_module{
 			output.close();
 		}	
 
+		void sample_from_valid_population(pop_data& pop,input_param& param){
+			vector<int> subsample_idx_vec;
+			for(unordered_map<string,set<int> >::iterator i=pop.pop_col_dict.begin();i!=pop.pop_col_dict.end();++i){
+				if(i->second.size()>=param.min_sample){
+					for (set<int>::iterator j = i->second.begin(); j != i->second.end(); ++j){
+						subsample_idx_vec.push_back(*j);
+					}
+				}
+			}
+			pair<vector<int>,vector<int> > splitted_idx_vecs=split_vec_into_two(param.sample_frac,param.seed,subsample_idx_vec);
+			subsample_idx_vec_disc=splitted_idx_vecs.first;
+			subsample_idx_vec_valid=splitted_idx_vecs.second;
+			//Load valid pop data
+			unordered_set<string> temp_pop_set;
+			unordered_map<string,set<int> > subsample_temp_pop_col_dict;
+			for (int i = 0; i !=subsample_idx_vec_disc.size(); ++i){
+				int sample_idx=subsample_idx_vec_disc[i];
+				string sample_name=pop.col_sample_dict[sample_idx];
+				string pop_name=pop.sample_dict[sample_name];
+				if(!subsample_temp_pop_col_dict.count(pop_name)){
+					set<int> temp_set;
+					subsample_temp_pop_col_dict[pop_name]=temp_set;
+				}
+				subsample_temp_pop_col_dict[pop_name].insert(sample_idx);
+			}
+			for(unordered_map<string,set<int> >::iterator i=subsample_temp_pop_col_dict.begin();i!=subsample_temp_pop_col_dict.end();++i){
+				if(i->second.size()>=param.min_sample){
+					subsample_pop_col_dict[i->first]=i->second;
+				}
+			}
+		}
+
 		//Frequency analysis module
 
-		void variant_data_reader(int j,pop_data pop,input_param param,var_list& var,ann_data ann){
+		void variant_data_reader(int j,pop_data& pop,input_param& param,var_list& var,ann_data& ann,int thread_num){
 			input.open(input_ad);
 			check_file_open_status(input,input_ad);
 			output.open(temp_ad);
@@ -105,59 +139,115 @@ class thread_analysis_module{
 			main.output_file_header(output,var,param,pop,pop_vec);			
 			cout<<endl<<"Output header generated, start analyzing variant data."<<endl;
 			row_cur=0,var_num=0;
+			int input_num=0;
+			var_num=0;
+
 			while(getline(input,line)){
 				if(line[0]!='#'){
+					input_num++;
 					if(line_cter%100000==0){
 						cout<<line_cter<<" variants loaded."<<endl;
 					}
-					if(row_cur==var.var_mat.size()){
-						break;
-					}
 					line_cter++;
-					chr_str=find_str_after_nth_char(line,0,'\t');
-					pos_str=find_str_after_nth_char(line,1,'\t');
-					if(var.var_mat[row_cur][0]==chr_str){
-						if(var.var_mat[row_cur][1]==pos_str){
-							if(param.ann_flag.length()>0){
-								ann_str=find_str_after_nth_char(line,7,'\t');
-								if(find_str_after_nth_char(ann_str,1,'|').find(param.ann_flag)!=string::npos){
+					var_cter=si_q.size();
+
+					while(si_q.size()>=(thread_num-1)*300000){
+						this_thread::sleep_for(chrono::milliseconds(1000));
+						cout<<si_q.size()<<" in-memory variants currently waiting for processing..."<<endl;
+						var_cter=si_q.size();
+					}
+
+					if(var.var_mat.size()==0){
+						if(param.ann_flag.length()>0){
+							ann_str=find_str_after_nth_char(line,7,'\t');
+							if(find_str_after_nth_char(ann_str,1,'|').find(param.ann_flag)!=string::npos){
+								pair<string,pair<int,int> > temp_pair=make_pair(line,make_pair(line_cter,row_cur));
+								// pair<string,int> temp_pair=make_pair(line,line_cter);
+								unique_lock<mutex> ul(ip_mutex);
+								si_q.push(temp_pair);
+								g_ready=true;
+								ul.unlock();
+								g_cv.notify_all();								
+							}
+						}else{
+							pair<string,pair<int,int> > temp_pair=make_pair(line,make_pair(line_cter,row_cur));
+							// pair<string,int > temp_pair=make_pair(line,line_cter);
+							unique_lock<mutex> ul(ip_mutex);
+							si_q.push(temp_pair);
+							g_ready=true;
+							ul.unlock();
+							g_cv.notify_all();	
+						}
+					}else{
+						if(row_cur==var.var_mat.size()){
+							break;
+						}
+
+						chr_str=find_str_after_nth_char(line,0,'\t');
+						pos_str=find_str_after_nth_char(line,1,'\t');
+
+						int cur_chr_idx=stoi(chr_str.substr(7,2))-4,tar_chr_idx=stoi(var.var_mat[row_cur][0].substr(7,2))-4;
+
+						while(cur_chr_idx>tar_chr_idx){
+							row_cur++;
+							if(row_cur==var.var_mat.size()){
+								break;
+							}
+							tar_chr_idx=stoi(var.var_mat[row_cur][0].substr(7,2))-4;
+
+						}
+						if(row_cur==var.var_mat.size()){
+							break;
+						}
+						
+						if(var.var_mat[row_cur][0]==chr_str){
+							int cur_pos=stoi(pos_str),tar_pos=stoi(var.var_mat[row_cur][1]);
+							while(cur_pos>tar_pos&&var.var_mat[row_cur][0]==chr_str){
+								row_cur++;
+								if(row_cur==var.var_mat.size()){
+									break;
+								}
+								tar_pos=stoi(var.var_mat[row_cur][1]);
+							}
+							if(row_cur==var.var_mat.size()){
+								break;
+							}
+
+							if(var.var_mat[row_cur][1]==pos_str){
+								if(param.ann_flag.length()>0){
+									ann_str=find_str_after_nth_char(line,7,'\t');
+									if(find_str_after_nth_char(ann_str,1,'|').find(param.ann_flag)!=string::npos){
+										pair<string,pair<int,int> > temp_pair=make_pair(line,make_pair(line_cter,row_cur));
+										unique_lock<mutex> ul(ip_mutex);
+										si_q.push(temp_pair);
+										g_ready=true;
+										ul.unlock();
+										g_cv.notify_all();										
+									}
+								}else{
 									pair<string,pair<int,int> > temp_pair=make_pair(line,make_pair(line_cter,row_cur));
 									unique_lock<mutex> ul(ip_mutex);
 									si_q.push(temp_pair);
 									g_ready=true;
 									ul.unlock();
-									g_cv.notify_all();										
+									g_cv.notify_all();	
 								}
-							}else{
-								pair<string,pair<int,int> > temp_pair=make_pair(line,make_pair(line_cter,row_cur));
-								unique_lock<mutex> ul(ip_mutex);
-								si_q.push(temp_pair);
-								g_ready=true;
-								ul.unlock();
-								g_cv.notify_all();	
 							}
-							row_cur++;			
-						}else{
-							if(stoi(pos_str)>stoi(var.var_mat[row_cur][1])){
-								row_cur++;
-							}		
-						}
-					}else{
-						if(stoi(chr_str.substr(7,2))>stoi(var.var_mat[row_cur][0].substr(7,2))){
-							row_cur++;
-						}
+						}						
 					}
 				}
 			}
-			input.close();
-			cout<<"All "<<row_cur<<" variants scanned. Waiting for frequency calculation to be completed..."<<endl;
+			cout<<"All "<<input_num<<" variants scanned. Waiting for frequency calculation to be completed..."<<endl;
 			var_cter=si_q.size();
 			cout<<var_cter<<" variants remained for processing..."<<endl;
+
 			while(si_q.size()!=0){
 				this_thread::sleep_for(chrono::milliseconds(10000));
 				cout<<si_q.size()<<" variants remained for processing...Processing speed "<<(var_cter-si_q.size())*6<<" variants/min."<<endl;
 				var_cter=si_q.size();
 			}
+
+			input.close();
 			cout<<"Frequency calculation completed. ";
 			auto end=chrono::high_resolution_clock::now();
 			auto duration = chrono::duration_cast<chrono::seconds>(end - start);
@@ -171,10 +261,11 @@ class thread_analysis_module{
 			cout<<"A total of "<<var_num<<"  variant output."<<endl;
 			cout<<"Sorting variant data..."<<endl;
 			insert_sort_variant_files(temp_ad,output_ad);
+			filesystem::remove(temp_ad);
 			cout<<"Sorting completed."<<endl;
 		}
 
-		void freq_data_loader(int i,pop_data pop,input_param param,var_list& var,ann_data ann){
+		void freq_data_loader(int i,pop_data& pop,input_param& param,var_list& var,ann_data& ann){
 			string ip_str,freq_str,gt_str;
 			int row_mark,line_mark;
 			vector<string> line_vec,pop_rst_vec;
@@ -197,7 +288,10 @@ class thread_analysis_module{
 					row_mark=q_pair.second.second;
 					main_analysis_module main;
 					line_vec=read_char_delim_str(ip_str,'\t');
-					vector<int> ind_vec;					
+					vector<int> ind_vec;
+					if(line_vec[4].length()!=1){
+						goto labelA;
+					}
 					if(!param.no_splicing){
 						str_vec_pair=analyze_pop_freq_per_line(pop,param,var,ann,line_vec,pop_vec,row_mark,ind_vec);
 					}else{
@@ -210,11 +304,13 @@ class thread_analysis_module{
 					pop_rst_vec=str_vec_pair.second;
 					//output data
 					if(param.dist_mode){
-						ul.lock();
-						output<<line_mark<<'\t'<<freq_str<<endl;
-						var_num++;
-						g_ready=false;
-						ul.unlock();
+						if(ind_vec[7]==1){
+							ul.lock();
+							output<<line_mark<<'\t'<<freq_str<<endl;
+							var_num++;
+							g_ready=false;
+							ul.unlock();							
+						}
 					}else{
 						if(param.exhaust_valid_mode){
 							if (ind_vec[0]!=0&&ind_vec[4]==0){
@@ -238,6 +334,7 @@ class thread_analysis_module{
 							}
 						}
 					}
+					labelA:;
 				}
 			}
 			completed=true;
@@ -245,9 +342,10 @@ class thread_analysis_module{
 			g_ready=true;			
 		}
 
-		pair<vector<string>,vector<string> > analyze_pop_freq_per_line(pop_data pop,input_param param,var_list& var,ann_data ann,vector<string> line_vec,vector<string> pop_vec,int row_mark,vector<int>& ind_vec){
-			int ind1=1,ind2=1,ind3=1,ind4=1,ind5=1,valid_ind1=0,valid_ind2=0;
-			int total_num,case_num,total_num2,case_num2;
+		pair<vector<string>,vector<string> > analyze_pop_freq_per_line(pop_data& pop,input_param& param,var_list& var,ann_data& ann,vector<string>& line_vec,vector<string>& pop_vec,int row_mark,vector<int>& ind_vec){
+			int ind1=1,ind2=1,ind3=1,ind4=1,ind5=1,valid_ind1=0,valid_ind2=0,ind6=0;
+			int total_num,case_num,var_allele_num;
+			int site_total_ind_num=0,site_var_ind_num=0,site_var_num=0;
 			double freq;
 			vector<string> var_pop_vec,temp_vec;
 			unordered_map<string,string> freq_dict;
@@ -255,19 +353,44 @@ class thread_analysis_module{
 			for (int i = 0; i < pop_vec.size(); ++i){
 				total_num=0;
 				case_num=0;
+				var_allele_num=0;
+
 				for (set<int>::iterator j=pop.pop_col_dict[pop_vec[i]].begin(); j!=pop.pop_col_dict[pop_vec[i]].end(); ++j){
-					if(line_vec[*j][0]=='0'||line_vec[*j][0]=='1'){
-						total_num+=1;
-						case_num+=check_genotype(line_vec[*j]);
-						temp_str+='\t'+to_string(check_genotype(line_vec[*j]));
+					if(param.depth_file.length()!=0){
+						if(check_read_depth(line_vec[*j],min(10.0,pop.col_depth_dict[*j]))){
+							total_num+=1;
+							int temp;
+							if(param.flip){
+								temp=check_genotype_ref(line_vec[*j]);
+							}else{
+								temp=check_genotype(line_vec[*j]);
+							}
+							case_num+=temp;
+						}
 					}else{
-						if(line_vec[*j][0]=='.'){
-							temp_str+="\t2";
-						}else{
-							temp_str+="\t3";
+						if(check_read_depth(line_vec[*j],param.min_depth)){
+							total_num+=1;
+							int temp;
+							if(param.flip){
+								temp=check_genotype_ref(line_vec[*j]);
+							}else{
+								temp=check_genotype(line_vec[*j]);
+							}
+							if(line_vec[*j][0]=='1'){
+								var_allele_num+=1;
+							}
+							if(line_vec[*j][2]=='1'){
+								var_allele_num+=1;
+							}
+							case_num+=temp;
 						}
 					}
 				}
+
+				site_total_ind_num+=total_num;
+				site_var_ind_num+=case_num;
+				site_var_num+=var_allele_num;
+
 				if(total_num>=param.min_sample){
 					freq=(double)case_num/(double)total_num;
 					freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
@@ -300,7 +423,7 @@ class thread_analysis_module{
 						}
 					}
 				}else{
-					if (total_num==0){
+					if(total_num==0){
 						freq_dict[pop_vec[i]]="0/0";
 					}else{
 						freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
@@ -312,18 +435,30 @@ class thread_analysis_module{
 					ind3*=0;
 				}
 			}
-			op_str=var.var_mat[row_mark][0]+'\t'+var.var_mat[row_mark][1]+'\t'+read_char_delim_str(line_vec[7],'|')[3]+'\t'+read_char_delim_str(line_vec[7],'|')[1]+'\t'+read_char_delim_str(line_vec[7],'|')[13]+'\t'+read_char_delim_str(line_vec[7],'|')[10];
+
+			double var_freq=(double)site_var_num/(2*site_total_ind_num);
+			if(var_freq>param.af&&var_freq<(1-param.af)){
+				ind6=1;
+			}
+
+			string hline_str=generate_line_header(line_vec);
+			op_str=hline_str;
+			if(param.dist_mode){
+				op_str+=to_string(site_var_num)+'\t'+to_string(site_var_ind_num)+'\t'+to_string(site_total_ind_num);
+			}
 			for (int i = 0; i < pop_vec.size(); ++i){
 				op_str+='\t'+freq_dict[pop_vec[i]];
 			}
 			//Store gt_data
-			temp_str=var.var_mat[row_mark][0]+'\t'+var.var_mat[row_mark][1]+'\t'+read_char_delim_str(line_vec[7],'|')[3]+'\t'+read_char_delim_str(line_vec[7],'|')[1]+'\t'+read_char_delim_str(line_vec[7],'|')[13]+'\t'+read_char_delim_str(line_vec[7],'|')[10]+temp_str;
-			//Updating pop_vec			
-			temp_vec.push_back(var.var_mat[row_mark][0]);
-			temp_vec.push_back(var.var_mat[row_mark][1]);
-			for (int i = 0; i < var_pop_vec.size(); ++i){
-				temp_vec.push_back(var_pop_vec[i]);
-			}
+			//Updating pop_vec	
+			if(var.var_mat.size()!=0){
+				temp_vec.push_back(var.var_mat[row_mark][0]);
+				temp_vec.push_back(var.var_mat[row_mark][1]);
+				for (int i = 0; i < var_pop_vec.size(); ++i){
+					temp_vec.push_back(var_pop_vec[i]);
+				}				
+			}		
+
 			vector<string> temp_vec2;
 			temp_vec2.push_back(op_str);
 			temp_vec2.push_back(temp_str);
@@ -335,12 +470,13 @@ class thread_analysis_module{
 			ind_vec.push_back(ind3);
 			ind_vec.push_back(ind4);
 			ind_vec.push_back(ind5);
+			ind_vec.push_back(ind6);
 			return make_pair(temp_vec2,temp_vec);
 		}
 
 		//Validation module
 
-		void ev_variant_reader(int j,pop_data pop,input_param param,var_list& var,ann_data ann){
+		void ev_variant_reader(int j,pop_data& pop,input_param& param,var_list& var,ann_data& ann){
 			input.open(input_ad);
 			check_file_open_status(input,input_ad);
 			output.open(temp_ad);
@@ -351,19 +487,44 @@ class thread_analysis_module{
 			auto start=chrono::high_resolution_clock::now();
 			main.output_file_header(output,var,param,pop,pop_vec);			
 			cout<<endl<<"Output header generated, start analyzing variant data."<<endl;
-			row_cur=0,var_num=0;
+			row_cur=0;
+			int input_num=0;
 			while(getline(input,line)){
 				if(line[0]!='#'){
+					input_num++;
 					if(line_cter%100000==0){
 						cout<<line_cter<<" variants loaded."<<endl;
 					}
+					line_cter++;
 					if(row_cur==var.var_mat.size()){
 						break;
 					}
-					line_cter++;
 					chr_str=find_str_after_nth_char(line,0,'\t');
 					pos_str=find_str_after_nth_char(line,1,'\t');
-					if(var.var_mat[row_cur][0]==chr_str){
+					int cur_chr_idx=stoi(chr_str.substr(7,2))-4;
+					int tar_chr_idx=stoi(var.var_mat[row_cur][0]);
+					while(cur_chr_idx>tar_chr_idx){
+						row_cur++;
+						if(row_cur==var.var_mat.size()){
+							break;
+						}
+						tar_chr_idx=stoi(var.var_mat[row_cur][0]);
+					}
+					if(row_cur==var.var_mat.size()){
+						break;
+					}	
+					if(stoi(var.var_mat[row_cur][0])==cur_chr_idx){
+						int cur_pos=stoi(pos_str),tar_pos=stoi(var.var_mat[row_cur][1]);
+						while(cur_pos>tar_pos&&stoi(var.var_mat[row_cur][0])==cur_chr_idx){
+							row_cur++;
+							if(row_cur==var.var_mat.size()){
+									break;
+							}
+							tar_pos=stoi(var.var_mat[row_cur][1]);
+						}
+						if(row_cur==var.var_mat.size()){
+							break;
+						}
 						if(var.var_mat[row_cur][1]==pos_str){
 							if(param.ann_flag.length()>0){
 								ann_str=find_str_after_nth_char(line,7,'\t');
@@ -383,21 +544,11 @@ class thread_analysis_module{
 								ul.unlock();
 								g_cv.notify_all();	
 							}
-							row_cur++;			
-						}else{
-							if(stoi(pos_str)>stoi(var.var_mat[row_cur][1])){
-								row_cur++;
-							}		
 						}
-					}else{
-						if(stoi(chr_str.substr(7,2))>stoi(var.var_mat[row_cur][0].substr(7,2))){
-							row_cur++;
-						}
-					}
+					}	
 				}
 			}
-			input.close();
-			cout<<"All "<<row_cur<<" variants scanned. Waiting for frequency calculation to be completed..."<<endl;
+			cout<<"All "<<input_num<<" variants scanned. Waiting for frequency calculation to be completed..."<<endl;
 			var_cter=si_q.size();
 			cout<<var_cter<<" variants remained for processing..."<<endl;
 			while(si_q.size()!=0){
@@ -405,6 +556,7 @@ class thread_analysis_module{
 				cout<<si_q.size()<<" variants remained for processing...Processing speed "<<(var_cter-si_q.size())*6<<" variants/min."<<endl;
 				var_cter=si_q.size();
 			}
+			input.close();
 			cout<<"Frequency calculation completed. ";
 			auto end=chrono::high_resolution_clock::now();
 			auto duration = chrono::duration_cast<chrono::seconds>(end - start);
@@ -413,13 +565,14 @@ class thread_analysis_module{
 			g_cv.notify_all();
 			g_ready=true;
 			output.close();
-			cout<<"A total of "<<var_num<<"  variant output."<<endl;
+			cout<<"A total of "<<var_num<<" target variant found."<<endl;
 			cout<<"Sorting variant data..."<<endl;
 			insert_sort_variant_files(temp_ad,output_ad);
+			filesystem::remove(temp_ad);
 			cout<<"Sorting completed."<<endl;
 		}
 
-		void ev_freq_loader(int i,pop_data pop,input_param param,var_list& var,ann_data ann){
+		void ev_freq_loader(int i,pop_data& pop,input_param& param,var_list& var,ann_data& ann){
 			string ip_str,freq_str,gt_str;
 			int row_mark,line_mark;
 			vector<string> line_vec,pop_rst_vec;
@@ -478,7 +631,7 @@ class thread_analysis_module{
 			}
 		}
 
-		pair<vector<string>,vector<string> > ev_analyze_pop_freq_per_line(pop_data pop,input_param param,var_list& var,ann_data ann,vector<string> line_vec,vector<string> pop_vec,int row_mark,vector<int>& ind_vec){
+		pair<vector<string>,vector<string> > ev_analyze_pop_freq_per_line(pop_data& pop,input_param& param,var_list& var,ann_data& ann,vector<string>& line_vec,vector<string>& pop_vec,int row_mark,vector<int>& ind_vec){
 			int ind1=1,ind2=1,ind3=1,ind4=1,ind5=1,valid_ind1=0,valid_ind2=0;
 			int total_num,case_num,total_num2,case_num2;
 			double freq;
@@ -490,15 +643,17 @@ class thread_analysis_module{
 					total_num=0;
 					case_num=0;
 					for (set<int>::iterator j=pop.pop_col_dict[pop_vec[i]].begin(); j!=pop.pop_col_dict[pop_vec[i]].end(); ++j){
-						if(line_vec[*j][0]=='0'||line_vec[*j][0]=='1'){
-							total_num+=1;
-							case_num+=check_genotype(line_vec[*j]);
-							temp_str+='\t'+to_string(check_genotype(line_vec[*j]));
+						if(param.depth_file.length()!=0){
+							if(check_read_depth(line_vec[*j],min(10.0,pop.col_depth_dict[*j]))){
+								total_num+=1;
+								int temp=check_genotype(line_vec[*j]);
+								case_num+=temp;
+							}
 						}else{
-							if(line_vec[*j][0]=='.'){
-								temp_str+="\t2";
-							}else{
-								temp_str+="\t3";
+							if(check_read_depth(line_vec[*j],param.min_depth)){
+								total_num+=1;
+								int temp=check_genotype(line_vec[*j]);
+								case_num+=temp;
 							}
 						}
 					}
@@ -539,45 +694,89 @@ class thread_analysis_module{
 					total_num=0;
 					case_num=0;
 					for (set<int>::iterator j=pop.pop_col_dict[pop_vec[i]].begin(); j!=pop.pop_col_dict[pop_vec[i]].end(); ++j){
-						if(line_vec[*j][0]=='0'||line_vec[*j][0]=='1'){
-							total_num+=1;
-							case_num+=check_genotype(line_vec[*j]);
-							temp_str+='\t'+to_string(check_genotype(line_vec[*j]));
+						if(param.depth_file.length()!=0){
+							if(check_read_depth(line_vec[*j],min(10.0,pop.col_depth_dict[*j]))){
+								total_num+=1;
+								int temp=check_genotype(line_vec[*j]);
+								case_num+=temp;
+							}
 						}else{
-							if(line_vec[*j][0]=='.'){
-								temp_str+="\t2";
-							}else{
-								temp_str+="\t3";
+							if(check_read_depth(line_vec[*j],param.min_depth)){
+								total_num+=1;
+								int temp=check_genotype(line_vec[*j]);
+								case_num+=temp;
 							}
 						}
 					}
 					cumu_total+=total_num;
 					cumu_case+=case_num;
-					if(total_num>=param.min_sample){
-						valid_ind1++;
-						freq=(double)case_num/(double)total_num;
-						freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
-						if (freq>=param.pop1_lower&&freq<=param.pop1_upper){
-							pop1_num+=1;
-							for (int a=2;a!=var.var_mat[row_mark].size();++a){
-								if(pop_vec[i]==var.var_mat[row_mark][a]){
+
+					if(param.min_sample_ref==-1||param.min_sample_tar==-1){
+						if(total_num>=param.min_sample){
+							valid_ind1++;
+							freq=(double)case_num/(double)total_num;
+							freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
+							if (freq>=param.pop1_lower&&freq<=param.pop1_upper){
+								pop1_num+=1;
+								for (int a=2;a!=var.var_mat[row_mark].size();++a){
+									if(pop_vec[i]==var.var_mat[row_mark][a]){
+										ind5*=0;
+									}
+								}
+							}else{
+								if (!(freq>=param.pop2_lower&&freq<=param.pop2_upper)){
+									pop_neither_num+=1;
+								}
+							}									
+						}else{
+							if (total_num==0){
+								freq_dict[pop_vec[i]]="0/0";
+							}else{
+								freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
+							}
+						}
+					}else{
+						//Check populations to be validated
+						set<string> st;
+						for (int a=2;a!=var.var_mat[row_mark].size();++a){
+							st.insert(var.var_mat[row_mark][a]);
+						}
+						//Check for target population
+						if(st.count(pop_vec[i])){
+							if (total_num>=param.min_sample_tar){
+								valid_ind1++;
+								freq=(double)case_num/(double)total_num;
+								freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
+								if (freq>=param.pop1_lower&&freq<=param.pop1_upper){
+									pop1_num+=1;
 									ind5*=0;
+								}								
+							}else{
+								if (total_num==0){
+									freq_dict[pop_vec[i]]="0/0";
+								}else{
+									freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
 								}
 							}
 						}else{
-							if (!(freq>=param.pop2_lower&&freq<=param.pop2_upper)){
-								pop_neither_num+=1;
+							if(total_num>=param.min_sample_ref){
+								valid_ind1++;
+								freq=(double)case_num/(double)total_num;
+								freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
+								if (!(freq>=param.pop2_lower&&freq<=param.pop2_upper)){
+									pop_neither_num+=1;
+								}
+							}else{
+								if (total_num==0){
+									freq_dict[pop_vec[i]]="0/0";
+								}else{
+									freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
+								}								
 							}
-						}									
-					}else{
-						if (total_num==0){
-							freq_dict[pop_vec[i]]="0/0";
-						}else{
-							freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
-						}
+						}						
 					}
 				}
-				
+
 				if(ind5==0){
 					if(pop1_num==param.pop_num&&pop_neither_num==0){
 						ind1*=0;
@@ -586,30 +785,8 @@ class thread_analysis_module{
 						for (int i = 0; i < pop_vec.size(); ++i){
 							op_str+='\t'+freq_dict[pop_vec[i]];
 						}
-						//Store gt_data
-						// gt_str=hline_str+gt_str;
 					}					
 				}
-
-
-				// for(int a=2;a!=var.var_mat[row_mark].size();++a){
-				// 	if(ind1==1){
-				// 		string pop_name=var.var_mat[row_mark][a];
-				// 		if(!freq_dict.count(pop_name)){
-				// 			continue;
-				// 		}
-				// 		vector<string> freq_vec=read_char_delim_str(freq_dict[pop_name],'/');
-				// 		int nom=stoi(freq_vec[0]),denom=stoi(freq_vec[1]);
-				// 		if(denom<param.min_sample){
-				// 			continue;
-				// 		}
-				// 		double freq_1=(double)nom/(double)denom;
-				// 		if(freq_1>=param.pop1_lower&&freq_1<=param.pop1_upper){
-				// 			ind1*=0;
-				// 		}
-				// 	}
-				// }
-
 			}
 
 			if (total_num!=case_num){
@@ -646,16 +823,20 @@ class thread_analysis_module{
 
 		//Exhaustive discovery module
 
-		void ed_variant_reader(int j,pop_data pop,input_param param,var_list& var,ann_data ann,int thread_num){
+		void ed_variant_reader(int j,pop_data& pop,input_param& param,var_list& var,ann_data& ann,int thread_num){
 			input.open(input_ad);
 			check_file_open_status(input,input_ad);
 			output.open(temp_ad);
 			check_file_open_status(output,output_ad);
+			//Check for sampling option
+			if(param.sample_frac<1){
+				sample_from_valid_population(pop,param);
+			}
 			int line_cter=1,var_cter;
 			string line,chr_str,pos_str,ann_str;
 			main_analysis_module main;
 			auto start=chrono::high_resolution_clock::now();
-			main.output_file_header(output,var,param,pop,pop_vec);			
+			main.output_file_header(output,var,param,pop,pop_vec);		
 			cout<<endl<<"Output header generated, start analyzing variant data."<<endl;
 			var_num=0;
 			while(getline(input,line)){
@@ -665,10 +846,11 @@ class thread_analysis_module{
 					}
 					line_cter++;
 					var_cter=sp_q.size();
-					while(sp_q.size()>=(thread_num-1)*300000){
-						this_thread::sleep_for(chrono::milliseconds(10000));
+
+					while(sp_q.size()>=(thread_num-1)*200000){
+						this_thread::sleep_for(chrono::milliseconds(1000));
 						cout<<sp_q.size()<<" in-memory variants currently waiting for processing..."<<endl;
-						cout<<"Processing speed "<<(var_cter-sp_q.size())*6<<" variants/min."<<endl;
+						//cout<<"Processing speed "<<(var_cter-sp_q.size())*60<<" variants/min."<<endl;
 						var_cter=sp_q.size();
 					}
 					if(param.ann_flag.length()>0){
@@ -713,14 +895,26 @@ class thread_analysis_module{
 				var.output_var_pop_file(param.output_file+".pop_list");
 				cout<<endl;
 			}
+			cout<<"A total of "<<eff_var_num<<" effective variant scanned."<<endl;
 			cout<<"A total of "<<var_num<<"  variant output."<<endl;
+			if (param.sample_frac<1){
+				cout<<"Output analysis specs for the sampled subset."<<endl;
+				ofstream temp_output;
+				temp_output.open(output_ad+".sample_partition_list");
+				temp_output<<"#Breed\tNumber of sampled sample\tNumber of left-over samples"<<endl;
+				for (unordered_map<string,set<int>>::iterator i = subsample_pop_col_dict.begin(); i !=subsample_pop_col_dict.end(); ++i){
+					temp_output<<i->first<<'\t'<<i->second.size()<<'\t'<<pop.pop_col_dict[i->first].size()-i->second.size()<<endl;
+				}
+				temp_output<<'*'<<eff_var_num<<endl;
+				temp_output.close();
+			}
 			cout<<"Sorting variant data..."<<endl;
 			insert_sort_variant_files(temp_ad,output_ad);
 			filesystem::remove(temp_ad);
 			cout<<"Sorting completed."<<endl;
 		}
 
-		void ed_freq_data_loader(int i,pop_data pop,input_param param,var_list& var,ann_data ann){
+		void ed_freq_data_loader(int i,pop_data& pop,input_param& param,var_list& var,ann_data& ann){
 			string ip_str,freq_str,gt_str;
 			int row_mark,line_mark;
 			vector<string> line_vec,pop_rst_vec;
@@ -744,6 +938,9 @@ class thread_analysis_module{
 					main_analysis_module main;
 					line_vec=read_char_delim_str(ip_str,'\t');
 					vector<int> ind_vec;
+					if(!param.INDEL_mode&&line_vec[4].length()!=1){
+						goto labelB;
+					}
 					if(!param.no_splicing){
 						str_vec_pair=ed_analyze_pop_freq_per_line(pop,param,var,ann,line_vec,pop_vec,row_mark,ind_vec);
 					}else{
@@ -752,25 +949,16 @@ class thread_analysis_module{
 						}
 					}
 					freq_str=str_vec_pair.first[0];
-					gt_str=str_vec_pair.first[1];
-					pop_rst_vec=str_vec_pair.second;
-					pop_rst_vec.push_back(to_string(line_mark));
 					//output data
-					if(param.dist_mode){
-						ul.lock();
-						output<<line_mark<<'\t'<<freq_str<<endl;
-						var_num++;
-						g_ready=false;
-						ul.unlock();
-					}else{
 						if(ind_vec[5]==0&&ind_vec[4]==0){
 							if(param.analysis_mode==3||param.analysis_mode==1){
-								ul.lock();
-								var.var_pop_mat.push_back(pop_rst_vec);
-								output<<line_mark<<'\t'<<freq_str<<endl;
-								var_num++;
-								g_ready=false;
-								ul.unlock();
+								if(ind_vec[0]<=param.max_homo_pop){
+									ul.lock();
+									output<<line_mark<<'\t'<<freq_str<<endl;
+									var_num++;
+									g_ready=false;
+									ul.unlock();
+								}
 							}else{
 								ul.lock();
 								output<<line_mark<<'\t'<<freq_str<<endl;
@@ -779,7 +967,7 @@ class thread_analysis_module{
 								ul.unlock();
 							}
 						}
-					}
+					labelB:;
 				}
 			}
 			completed=true;
@@ -787,7 +975,7 @@ class thread_analysis_module{
 			g_ready=true;
 		}
 
-		pair<vector<string>,vector<string> > ed_analyze_pop_freq_per_line(pop_data pop,input_param param,var_list& var,ann_data ann,vector<string> line_vec,vector<string> pop_vec,int row_mark,vector<int>& ind_vec){
+		pair<vector<string>,vector<string> > ed_analyze_pop_freq_per_line(pop_data& pop,input_param& param,var_list& var,ann_data& ann,vector<string>& line_vec,vector<string>& pop_vec,int row_mark,vector<int>& ind_vec){
 			int ind1=1,ind2=1,ind3=1,ind4=1,ind5=1,valid_ind1=0,valid_ind2=0;
 			int total_num,case_num,total_num2,case_num2;
 			double freq;
@@ -798,15 +986,27 @@ class thread_analysis_module{
 				total_num=0;
 				case_num=0;
 				for (set<int>::iterator j=pop.pop_col_dict[pop_vec[i]].begin(); j!=pop.pop_col_dict[pop_vec[i]].end(); ++j){
-					if(line_vec[*j][0]=='0'||line_vec[*j][0]=='1'){
-						total_num+=1;
-						case_num+=check_genotype(line_vec[*j]);
-						gt_str+='\t'+to_string(check_genotype(line_vec[*j]));
-					}else{
-						if(line_vec[*j][0]=='.'){
-							gt_str+="\t2";
+					if(param.depth_file.length()!=0){
+						if(check_read_depth(line_vec[*j],min(10.0,pop.col_depth_dict[*j]))){
+							total_num+=1;
+						int temp;
+						if(param.flip){
+							temp=check_genotype_ref(line_vec[*j]);
 						}else{
-							gt_str+="\t3";
+							temp=check_genotype(line_vec[*j]);
+						}
+							case_num+=temp;
+						}
+					}else{
+						if(check_read_depth(line_vec[*j],param.min_depth)){
+							total_num+=1;
+						int temp;
+						if(param.flip){
+							temp=check_genotype_ref(line_vec[*j]);
+						}else{
+							temp=check_genotype(line_vec[*j]);
+						}
+							case_num+=temp;
 						}
 					}
 				}
@@ -815,6 +1015,7 @@ class thread_analysis_module{
 					freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
 					if (freq>=param.pop1_lower&&freq<=param.pop1_upper){
 						var_pop_vec.push_back(pop_vec[i]);
+						valid_ind1+=1;
 						ind4*=0;
 					}
 				}else{
@@ -835,14 +1036,7 @@ class thread_analysis_module{
 			for (int i = 0; i < pop_vec.size(); ++i){
 				op_str+='\t'+freq_dict[pop_vec[i]];
 			}
-			//Store gt_data
-			gt_str=hline_str+gt_str;
-			//Updating pop_vec			
-			temp_vec.push_back(line_vec[0]);
-			temp_vec.push_back(line_vec[1]);
-			for (int i = 0; i < var_pop_vec.size(); ++i){
-				temp_vec.push_back(var_pop_vec[i]);
-			}
+			//Updating pop_vec		
 			vector<string> temp_vec2;
 			temp_vec2.push_back(op_str);
 			temp_vec2.push_back(gt_str);
@@ -859,7 +1053,7 @@ class thread_analysis_module{
 
 		//Shared pattern discovery module 
 
-		void unipop_data_loader(pop_data pop,input_param param,var_list& var,ann_data ann){
+		void unipop_data_loader(pop_data& pop,input_param& param,var_list& var,ann_data& ann){
 			string ip_str,freq_str,gt_str;
 			int line_mark;
 			vector<string> line_vec,pop_rst_vec;
@@ -874,7 +1068,6 @@ class thread_analysis_module{
 					g_cv.wait(ul,[](){return g_ready;});
 				}else{
 					q_pair=sp_q.front();
-					// cter_vec[i]++;
 					sp_q.pop();
 					ul.unlock();
 					//main analysis
@@ -882,6 +1075,9 @@ class thread_analysis_module{
 					line_mark=q_pair.second;
 					line_vec=read_char_delim_str(ip_str,'\t');
 					vector<int> ind_vec;
+					if(!param.INDEL_mode&&line_vec[4].length()!=1){
+						goto labelA;
+					}
 					if(param.analysis_mode==5){
 						if(!param.no_splicing){
 							str_vec_pair=discover_unique_variant(pop,param,var,ann,line_vec,pop_vec,ind_vec);
@@ -892,18 +1088,18 @@ class thread_analysis_module{
 						}						
 					}
 					freq_str=str_vec_pair.first[0];
-					gt_str=str_vec_pair.first[1];
-					pop_rst_vec=str_vec_pair.second;
-					pop_rst_vec.push_back(to_string(line_mark));
 					//output data
+					ul.lock();
+					if(ind_vec[3]==0){
+						eff_var_num++;
+					}
 					if(ind_vec[2]==0&&ind_vec[4]==0){
-						ul.lock();
-						var.var_pop_mat.push_back(pop_rst_vec);
 						output<<line_mark<<'\t'<<freq_str<<endl;
 						var_num++;
-						g_ready=false;
-						ul.unlock();
 					}
+					g_ready=false;
+					ul.unlock();
+					labelA:;
 				}
 			}
 			completed=true;
@@ -911,7 +1107,7 @@ class thread_analysis_module{
 			g_ready=true;
 		}
 
-		pair<vector<string>,vector<string> > discover_unique_variant(pop_data pop,input_param param,var_list& var,ann_data ann,vector<string> line_vec,vector<string> pop_vec,vector<int>& ind_vec){
+		pair<vector<string>,vector<string> > discover_unique_variant(pop_data& pop,input_param& param,var_list& var,ann_data& ann,vector<string>& line_vec,vector<string>& pop_vec,vector<int>& ind_vec){
 			int ind1=1,ind2=1,ind3=1,ind4=1,ind5=1,valid_ind1=0,valid_ind2=0;
 			int total_num,case_num,total_num2,case_num2,pop1_num=0,pop_neither_num=0;
 			double freq;
@@ -919,52 +1115,164 @@ class thread_analysis_module{
 			unordered_map<string,string> freq_dict;
 			string gt_str="",op_str="";
 			int cumu_total=0,cumu_case=0;
-			for (int i = 0; i < pop_vec.size(); ++i){
-				total_num=0;
-				case_num=0;
-				for (set<int>::iterator j=pop.pop_col_dict[pop_vec[i]].begin(); j!=pop.pop_col_dict[pop_vec[i]].end(); ++j){
-					if(line_vec[*j][0]=='0'||line_vec[*j][0]=='1'){
-						total_num+=1;
-						case_num+=check_genotype(line_vec[*j]);
-						gt_str+='\t'+to_string(check_genotype(line_vec[*j]));
-					}else{
-						if(line_vec[*j][0]=='.'){
-							gt_str+="\t2";
+
+			if(param.sample_frac==1){
+				//Analyze with full dataset
+				for (int i = 0; i < pop_vec.size(); ++i){
+					total_num=0;
+					case_num=0;
+					for (set<int>::iterator j=pop.pop_col_dict[pop_vec[i]].begin(); j!=pop.pop_col_dict[pop_vec[i]].end(); ++j){
+						if(param.depth_file.length()!=0){
+							if(check_read_depth(line_vec[*j],min(10.0,pop.col_depth_dict[*j]))){
+								total_num+=1;
+								int temp;
+								if(param.flip){
+									temp=check_genotype_ref(line_vec[*j]);
+									if(pop.pop_col_dict[pop_vec[i]].size()>=3){
+										if(line_vec[*j][0]=='0'){
+											ind2*=0;
+										}
+									}
+								}else{
+									temp=check_genotype(line_vec[*j]);
+									if(pop.pop_col_dict[pop_vec[i]].size()>=3){
+										if(line_vec[*j][2]=='1'){
+											ind2*=0;
+										}
+									}
+								}
+								case_num+=temp;
+							}
 						}else{
-							gt_str+="\t3";
+							if(check_read_depth(line_vec[*j],param.min_depth)){
+								total_num+=1;
+								int temp;
+								if(param.flip){
+									temp=check_genotype_ref(line_vec[*j]);
+									if(pop.pop_col_dict[pop_vec[i]].size()>=3){
+										if(line_vec[*j][0]=='0'){
+											ind2*=0;
+										}
+									}
+								}else{
+									temp=check_genotype(line_vec[*j]);
+									if(pop.pop_col_dict[pop_vec[i]].size()>=3){
+										if(line_vec[*j][2]=='1'){
+											ind2*=0;
+										}
+									}
+								}
+								case_num+=temp;
+							}
+						}
+					}
+
+					cumu_total+=total_num;
+					cumu_case+=case_num;
+					if(total_num>=param.min_sample){
+						freq=(double)case_num/(double)total_num;
+						freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
+						if(!param.combine_all){
+							if (freq>=param.pop1_lower&&freq<=param.pop1_upper){
+								var_pop_vec.push_back(pop_vec[i]);
+								pop1_num+=1;
+							}else{
+								if (!(freq>=param.pop2_lower&&freq<=param.pop2_upper)){
+									pop_neither_num+=1;
+								}
+							}						
+						}
+					}else{
+						if (total_num==0){
+							freq_dict[pop_vec[i]]="0/0";
+						}else{
+							freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
+						}
+					}
+
+					if (total_num!=case_num){
+						ind3*=0;
+					}
+				}
+			}else{
+				//Analyze with sampled dataset
+				for (int i = 0; i < pop_vec.size(); ++i){
+					if(subsample_pop_col_dict.count(pop_vec[i])){
+						total_num=0;
+						case_num=0;
+						for (set<int>::iterator j=subsample_pop_col_dict[pop_vec[i]].begin(); j!=subsample_pop_col_dict[pop_vec[i]].end(); ++j){
+							if(param.depth_file.length()!=0){
+								if(check_read_depth(line_vec[*j],min(10.0,pop.col_depth_dict[*j]))){
+									total_num+=1;
+									int temp;
+									if(param.flip){
+										temp=check_genotype_ref(line_vec[*j]);
+										if(line_vec[*j][0]=='0'){
+											ind2*=0;
+										}
+									}else{
+										temp=check_genotype(line_vec[*j]);
+										if(line_vec[*j][2]=='1'){
+											ind2*=0;
+										}
+									}
+									case_num+=temp;
+								}
+							}else{
+								if(check_read_depth(line_vec[*j],param.min_depth)){
+									total_num+=1;
+									int temp;
+									if(param.flip){
+										temp=check_genotype_ref(line_vec[*j]);
+										if(line_vec[*j][0]=='0'){
+											ind2*=0;
+										}
+									}else{
+										temp=check_genotype(line_vec[*j]);
+										if(line_vec[*j][2]=='1'){
+											ind2*=0;
+										}
+									}
+									case_num+=temp;
+								}
+							}
+						}
+						cumu_total+=total_num;
+						cumu_case+=case_num;
+						if(total_num>=param.min_sample){
+							freq=(double)case_num/(double)total_num;
+							freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
+							if(!param.combine_all){
+								if (freq>=param.pop1_lower&&freq<=param.pop1_upper){
+									var_pop_vec.push_back(pop_vec[i]);
+									pop1_num+=1;
+								}else{
+									if (!(freq>=param.pop2_lower&&freq<=param.pop2_upper)){
+										pop_neither_num+=1;
+									}
+								}						
+							}
+						}else{
+							if (total_num==0){
+								freq_dict[pop_vec[i]]="0/0";
+							}else{
+								freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
+							}
+						}
+
+						if (total_num!=case_num){
+							ind3*=0;
 						}
 					}
 				}
-				cumu_total+=total_num;
-				cumu_case+=case_num;
-				if(total_num>=param.min_sample){
-					freq=(double)case_num/(double)total_num;
-					freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
-					if(!param.combine_all){
-						if (freq>=param.pop1_lower&&freq<=param.pop1_upper){
-							var_pop_vec.push_back(pop_vec[i]);
-							pop1_num+=1;
-						}else{
-							if (!(freq>=param.pop2_lower&&freq<=param.pop2_upper)){
-								pop_neither_num+=1;
-							}
-						}						
-					}
-				}else{
-					if (total_num==0){
-						freq_dict[pop_vec[i]]="0/0";
-					}else{
-						freq_dict[pop_vec[i]]=to_string(case_num)+"/"+to_string(total_num);
-					}
-				}
-
-				if (total_num!=case_num){
-					ind3*=0;
-				}
 			}
 
+			string hline_str=generate_line_header(line_vec);
+			if(param.flip){
+				hline_str+="|ref";
+			}
+			hline_str+="|"+line_vec[3]+">"+line_vec[4];
 			if(param.combine_all){
-				string hline_str=generate_line_header(line_vec);
 				op_str=hline_str;
 				if(param.pop_num==1){
 					for (int i = 0; i < pop_vec.size(); ++i){
@@ -980,27 +1288,33 @@ class thread_analysis_module{
 							var_pop_vec.push_back(pop_vec[i]);
 						}
 					}
-					gt_str=hline_str+gt_str;
 				}
 			}else{
-				if(pop1_num==param.pop_num&&pop_neither_num==0){
-					string hline_str=generate_line_header(line_vec);
-					op_str=hline_str;
-					for (int i = 0; i < pop_vec.size(); ++i){
-						op_str+='\t'+freq_dict[pop_vec[i]];
-					}
-					//Store gt_data
-					gt_str=hline_str+gt_str;
-					ind1=0;
+				if(pop_neither_num==0){
+					if(param.max_homo_pop>1){
+						if(pop1_num>=1&&pop1_num<=param.max_homo_pop){
+							op_str=hline_str;
+							for (int i = 0; i < pop_vec.size(); ++i){
+								op_str+='\t'+freq_dict[pop_vec[i]];
+							}
+							//Store gt_data
+							ind1=0;
+						}
+					}else if(param.pop_num==pop1_num){
+						op_str=hline_str;
+						for (int i = 0; i < pop_vec.size(); ++i){
+							if(freq_dict.count(pop_vec[i])){
+								op_str+='\t'+freq_dict[pop_vec[i]];
+							}else{
+								op_str+="\tNA";
+							}
+						}
+						//Store gt_data
+						ind1=0;
+					}				
 				}
 			}
 
-			//Updating pop_vec			
-			temp_vec.push_back(line_vec[0]);
-			temp_vec.push_back(line_vec[1]);
-			for (int i = 0; i < var_pop_vec.size(); ++i){
-				temp_vec.push_back(var_pop_vec[i]);
-			}
 			vector<string> temp_vec2;
 			temp_vec2.push_back(op_str);
 			temp_vec2.push_back(gt_str);
@@ -1016,8 +1330,227 @@ class thread_analysis_module{
 			return make_pair(temp_vec2,temp_vec);
 		}
 
-		/*Recode the discover_unique_variant to  allow for higher specificity*/
+		//Quantitative STR discovery module 
 
+		void STR_data_loader(pop_data& pop,input_param& param){
+			int line_mark;
+			vector<string> line_vec;
+			string ip_str,op_str;
+			while(true){
+				if(completed){
+					break;
+				}
+				unique_lock<mutex> ul(ip_mutex);
+				if(sp_q.size()==0){
+					g_cv.wait(ul,[](){return g_ready;});
+				}else{
+					pair<string,int> q_pair=sp_q.front();
+					sp_q.pop();
+					ul.unlock();
+					//main analysis
+					ip_str=q_pair.first;
+					line_mark=q_pair.second;
+					line_vec=read_char_delim_str(ip_str,'\t');
+					//Read STR length
+					int ind=0;
+					bool is_str=true;
+					if(param.analysis_mode==9){
+						op_str=analyze_STR_data(pop,param,line_vec,pop_vec,ind,is_str);	
+					}
+					//output data
+					ul.lock();
+					if(is_str){
+						eff_var_num++;
+					}
+					if(ind==0){
+						output<<line_mark<<'\t'<<op_str<<endl;
+						var_num++;
+					}
+					g_ready=false;
+					ul.unlock();
+				}
+			}
+			completed=true;
+			g_cv.notify_all();
+			g_ready=true;						
+		}
+
+		string analyze_STR_data(pop_data& pop,input_param& param,vector<string>& line_vec,vector<string>& pop_vec,int& ind,bool& is_str){
+			string op_str="",breed_STR;
+			map<int,int> gt_repsz_dict;
+			//Detecting if the locus is STR
+			string ref_allele=line_vec[3];
+			string alt_allele_field=line_vec[4];
+			vector<string> alt_alleles=read_char_delim_str(alt_allele_field,',');
+			alt_alleles.push_back(ref_allele);
+			if(alt_alleles.size()<=2){
+				is_str=false;
+				ind=1;
+				return op_str;					
+			}
+			if(alt_alleles.size()>2){
+				if(!isSTR(alt_alleles)){
+					is_str=false;
+					ind=1;
+					return op_str;					
+				}
+			}
+			//Alter ref and alt allele representation
+			line_vec[3]=alt_alleles.back();
+			stringstream ss;
+			ss<<alt_alleles[0];
+			for (int i = 1; i !=alt_alleles.size()-1; ++i){
+				ss<<','<<alt_alleles[i];
+			}
+			line_vec[4]=ss.str();
+			//Filter by repetitive element length
+			int unit_length=find_str_after_nth_char(line_vec[3],0,')').length()-find_str_after_nth_char(line_vec[3],0,'(').length()-1;
+			if(unit_length<param.min_rep_size){
+				ind=1;
+				is_str=false;
+				return op_str;
+			}
+			//Special escape
+			if(is_str&&param.StrPrint){
+				op_str=line_vec[0]+'\t'+line_vec[1]+'\t'+line_vec[2]+'\t'+line_vec[3]+'\t'+line_vec[4]+'\t'+line_vec[6];
+				return op_str;
+			}
+			// Read rep size
+			string repsz_str;
+			int repsz;
+			repsz_str=find_str_after_nth_char(line_vec[3],1,')');
+			repsz=stoi(repsz_str);
+			gt_repsz_dict[0]=repsz;
+			alt_alleles=read_char_delim_str(line_vec[4],',');
+			for (int i = 0; i < alt_alleles.size(); ++i){
+				repsz_str=find_str_after_nth_char(alt_alleles[i],1,')');
+				repsz=stoi(repsz_str);
+				gt_repsz_dict[i+1]=repsz;
+			}
+			///Determin classification boundaries
+			int rep_bound=param.rep_num;
+			if(param.kmeans){
+				vector<double> rep_vec;
+				for (map<int,int>::iterator i = gt_repsz_dict.begin(); i != gt_repsz_dict.end(); ++i){
+					rep_vec.push_back(i->second);
+				}
+				sort(rep_vec.begin(),rep_vec.end());
+				rep_bound=kmeans_find_boundary(rep_vec,20);
+			}
+			//start analysis
+			int pop_target_num=0;
+			int pop_neither_num=0;
+			for (int i = 0; i < pop_vec.size(); ++i){
+				breed_STR="";
+				int total_num=0;
+				int case_num=0;
+				vector<double> repeat_vec;
+				for (set<int>::iterator j=pop.pop_col_dict[pop_vec[i]].begin(); j!=pop.pop_col_dict[pop_vec[i]].end(); ++j){
+					if(line_vec[*j][0]!='.'){
+						//check_depth
+						int allele_1=line_vec[*j][0]-'0',allele_2=line_vec[*j][2]-'0';
+						string depth_str=read_char_delim_str(line_vec[*j],':')[1];
+						vector<string> depth_vec=read_char_delim_str(depth_str,',');
+						int total_depth;
+						if(allele_1==allele_2){
+							total_depth=stoi(depth_vec[allele_1]);
+						}else{
+							total_depth=stoi(depth_vec[allele_1])+stoi(depth_vec[allele_2]);
+						}
+						if(total_depth>=param.min_depth){
+							// Calculate repeat number
+							// repeat_vec.push_back((double)gt_repsz_dict[allele_1]);
+							// repeat_vec.push_back((double)gt_repsz_dict[allele_2]);
+							total_num++;
+							int rep_num1=gt_repsz_dict[allele_1];
+							int rep_num2=gt_repsz_dict[allele_2];
+							if(param.isEXP){
+								if(rep_num1>=rep_bound&&rep_num2>=rep_bound){
+									case_num++;
+								}								
+							}else{
+								if(rep_num1<rep_bound&&rep_num2<rep_bound){
+									case_num++;
+								}
+							}
+						}
+					}
+				}
+				double freq=(double) case_num/total_num;
+				breed_STR=to_string(case_num)+'/'+to_string(total_num);
+				if(total_num>=param.min_sample){
+					// Output mean repeat
+					// stringstream temp_stream;
+					// double mean=calc_mean(repeat_vec);
+					// double se=calc_deviation(repeat_vec);
+					// temp_stream<<fixed<<setprecision(4)<<mean<<"+-"<<se<<'('<<total_num<<')';
+					// breed_STR=temp_stream.str();
+
+					if(freq>=param.pop1_lower){
+						pop_target_num++;
+					}else if(freq<param.pop1_lower&&freq>param.pop2_upper){
+						pop_neither_num++;
+					}
+				}
+				op_str+='\t'+breed_STR;
+			}
+
+			if(!param.isGS){
+				if(pop_neither_num!=0){
+					ind=1;
+					return op_str;
+				}
+			}
+
+			if(pop_target_num==0){
+				ind=1;
+				return op_str;
+			}
+
+			if(param.max_homo_pop>1){
+				if(pop_target_num>param.max_homo_pop){
+					ind=1;
+					return op_str;
+				}
+			}else{
+				if(pop_target_num!=param.pop_num){
+					ind=1;
+					return op_str;
+				}
+			}
+			//Generate header line
+			string hline_str=generate_line_header(line_vec);
+			//Output allele type by rep number
+			alt_alleles=read_char_delim_str(line_vec[4],',');
+			alt_alleles.push_back(line_vec[3]);
+			map<int,string> low_rep_dict,high_rep_dict;
+			string low_rep_alleles="",high_rep_alleles="";
+			for (int i = 0; i < alt_alleles.size(); ++i){
+				int cp_num=stoi(find_str_after_nth_char(alt_alleles[i],1,')'));
+				if (cp_num>=rep_bound){
+					high_rep_dict[cp_num]=alt_alleles[i];
+				}else{
+					low_rep_dict[cp_num]=alt_alleles[i];
+				}
+			}
+			for (map<int,string>::iterator i = low_rep_dict.begin(); i != low_rep_dict.end(); ++i){
+				if(low_rep_alleles==""){
+					low_rep_alleles+=i->second;
+				}else{
+					low_rep_alleles+=','+i->second;
+				}				
+			}
+			for (map<int,string>::iterator i = high_rep_dict.begin(); i != high_rep_dict.end(); ++i){
+				if(high_rep_alleles==""){
+					high_rep_alleles+=i->second;
+				}else{
+					high_rep_alleles+=','+i->second;
+				}				
+			}
+			hline_str=hline_str+"|"+low_rep_alleles+"|"+high_rep_alleles;
+			op_str=hline_str+op_str;
+			return op_str;
+		}
 		//Variants aggregation analysis module
 
 		void gene_data_reader(pop_data pop,input_param param,var_list& var,ann_data ann){
@@ -1143,45 +1676,55 @@ class thread_analysis_module{
 		
 		void multi_thread_freq_analysis(int t){
 			if(param.analysis_mode==3||param.analysis_mode==1){
-				thread t1(&thread_analysis_module::ed_variant_reader,this,0,pop,param,ref(var),ann,t);
+				thread t1(&thread_analysis_module::ed_variant_reader,this,0,ref(pop),ref(param),ref(var),ref(ann),t);
 				for (int i = 1; i < t; ++i){
-					th_vec.push_back(thread(&thread_analysis_module::ed_freq_data_loader,this,i,pop,param,ref(var),ann));
+					th_vec.push_back(thread(&thread_analysis_module::ed_freq_data_loader,this,i,ref(pop),ref(param),ref(var),ref(ann)));
 				}
 				t1.join();
 				for (int i = 0; i < th_vec.size(); ++i){
 					th_vec[i].join();
 				}	
 			}else if(param.analysis_mode==2||param.analysis_mode==8){
-				thread t1(&thread_analysis_module::ev_variant_reader,this,0,pop,param,ref(var),ann);
+				thread t1(&thread_analysis_module::ev_variant_reader,this,0,ref(pop),ref(param),ref(var),ref(ann));
 				for (int i = 1; i < t; ++i){
-					th_vec.push_back(thread(&thread_analysis_module::ev_freq_loader,this,i,pop,param,ref(var),ann));
+					th_vec.push_back(thread(&thread_analysis_module::ev_freq_loader,this,i,ref(pop),ref(param),ref(var),ref(ann)));
 				}
 				t1.join();
 				for (int i = 0; i < th_vec.size(); ++i){
 					th_vec[i].join();
 				}					
 			}else if(param.analysis_mode==6||param.analysis_mode==4){
-				thread t1(&thread_analysis_module::variant_data_reader,this,0,pop,param,ref(var),ann);
+				thread t1(&thread_analysis_module::variant_data_reader,this,0,ref(pop),ref(param),ref(var),ref(ann),t);
 				for (int i = 1; i < t; ++i){
-					th_vec.push_back(thread(&thread_analysis_module::freq_data_loader,this,i,pop,param,ref(var),ann));
+					th_vec.push_back(thread(&thread_analysis_module::freq_data_loader,this,i,ref(pop),ref(param),ref(var),ref(ann)));
 				}
 				t1.join();
 				for (int i = 0; i < th_vec.size(); ++i){
 					th_vec[i].join();
 				}				
 			}else if(param.analysis_mode==5){
-				thread t1(&thread_analysis_module::ed_variant_reader,this,0,pop,param,ref(var),ann,t);
+				thread t1(&thread_analysis_module::ed_variant_reader,this,0,ref(pop),ref(param),ref(var),ref(ann),t);
 				for (int i = 1; i < t; ++i){
-					th_vec.push_back(thread(&thread_analysis_module::unipop_data_loader,this,pop,param,ref(var),ann));
+					th_vec.push_back(thread(&thread_analysis_module::unipop_data_loader,this,ref(pop),ref(param),ref(var),ref(ann)));
 				}
 				t1.join();
 				for (int i = 0; i < th_vec.size(); ++i){
 					th_vec[i].join();
 				}	
 			}else if(param.analysis_mode==7){
-				thread t1(&thread_analysis_module::gene_data_reader,this,pop,param,ref(var),ann);
+				thread t1(&thread_analysis_module::gene_data_reader,this,ref(pop),ref(param),ref(var),ref(ann));
 				for (int i = 1; i < t; ++i){
-					th_vec.push_back(thread(&thread_analysis_module::gene_data_loader,this,pop,param,ref(var),ann));
+					th_vec.push_back(thread(&thread_analysis_module::gene_data_loader,this,ref(pop),ref(param),ref(var),ref(ann)));
+				}
+				t1.join();
+				for (int i = 0; i < th_vec.size(); ++i){
+					th_vec[i].join();
+				}	
+			}
+			else if(param.analysis_mode==9){
+				thread t1(&thread_analysis_module::ed_variant_reader,this,0,ref(pop),ref(param),ref(var),ref(ann),t);				
+				for (int i = 1; i < t; ++i){
+					th_vec.push_back(thread(&thread_analysis_module::STR_data_loader,this,ref(pop),ref(param)));
 				}
 				t1.join();
 				for (int i = 0; i < th_vec.size(); ++i){
@@ -1196,11 +1739,14 @@ class thread_analysis_module{
 		ofstream output,temp_output;
 		string input_ad,output_ad,temp_ad;
 		bool completed=false;
-		int var_num=0,row_cur=0;
+		int var_num=0,row_cur=0,eff_var_num=0;
 		unordered_map<string,unordered_map<int,int> > gene_mutation_dict;
+		vector<int> subsample_idx_vec_disc,subsample_idx_vec_valid;
+		unordered_map<string,set<int>> subsample_pop_col_dict;
 		unsigned int th_num=thread::hardware_concurrency();
 		vector<int> cter_vec;
 		vector<string> pop_vec;
+		vector<string> subsample_pop_vec;
 		queue<string> s_q;
 		queue<pair<string,int> > sp_q;		
 		queue<pair<string,pair<int,int> > > si_q;
