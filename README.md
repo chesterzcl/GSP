@@ -1,11 +1,14 @@
 # Genetic Signature EXPlorer (GSEXP)
 
 ## Description
-We provide a command-line tool used for fast and efficient whole-genome scale genetic signature discovery. In brief, this tool is a population-frequency based scanner that can prioritize all-category genetic signatures exclusively presented in given population(s). This tool was implemented in a multi-threaded mode to deal with large population-scale whole genome sequencing(WGS) data. Three customizable modules allow this tool to fulfill different reserach needs. They are:
-1. Annotation flag
-2.
-3.
+We provide a command-line tool used for fast and efficient whole-genome scale genetic signature discovery. In brief, this tool is a population-frequency based scanner that can prioritize all-category genetic signatures exclusively presented in given population(s). This tool was implemented in a multi-threaded mode to deal with large population-scale whole genome sequencing(WGS) data. This tool runs on two required inputs including:
+1. A standard Variant Calling Format(VCF) file containing genomic information of the entire sample collection.
+2. A sample group label file indicating the membership of each individual sample.
 
+Besides, three main customizable modules allow this tool to fulfill a variety of reserach needs. They are:
+1. Loci annotation flags (position range, variant type, variant size, .etc.)
+2. Variant quality metrics (minimum tolerable sequencing depth)
+3. Population frequency constraints (frequency ranges in target and reference sample groups)
 
 One successful application of this tool was described in :
 
