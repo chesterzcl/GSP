@@ -27,3 +27,15 @@ Then type the following to compile:
 ```
 g++ -std=c++17 -pthread -o GSEXP utility.h ann_data.h input_param.h var_list.h pop_data.h main_analysis_module.h thread_analysis_module.h
 ```
+Then the user can run the tool by directly invoking:
+```
+./GSEXP
+```
+A sample code for whole-genome GS discovery is:
+```
+./GSEXP \
+-i
+-o
+-p
+```
+For a more detailed guide to use the tool, please move to the wiki section of this repo.
