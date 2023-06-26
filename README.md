@@ -20,10 +20,10 @@ Li, Z., Wang, Z., Chen, Z. et al. Systematically identifying genetic signatures 
 We recommand using GCCv11.2 or greater for compilation of this tool.
 
 After downloading the source code, move to the working directory via:
-
+```
 cd GSEXP
-
-Type the following to compile:
+```
+Then type the following to compile:
 ```
 g++ -std=c++17 -pthread -o GSEXP utility.h ann_data.h input_param.h var_list.h pop_data.h main_analysis_module.h thread_analysis_module.h
 ```
