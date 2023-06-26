@@ -1,3 +1,3 @@
-# PopFreq
+# Genetic Signature EXPlorer (GSEXP)
 
 
