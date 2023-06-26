@@ -31,11 +31,19 @@ Then the user can run the tool by directly invoking:
 ```
 ./GSEXP
 ```
-A sample code for whole-genome GS discovery is:
+A sample code for identifying whole-genome GS exclusively presented in a single target group is:
 ```
 ./GSEXP \
--i
--o
--p
+unique \
+-i SampleInput \
+-o SampleOutput \
+-p SampleGroupLabelFile \
+-t SampleThreadNumber \
+--mind 10 \
+--mins 3 \
+--popnum 1 \
+--p1l 0.9 --p1u 1.0 --p2l 0.0 --p2u 0.1
 ```
+After invoking the tool, it will print all interpreted arguments before starting analysis.
+
 For a more detailed guide to use the tool, please move to the wiki section of this repo.
