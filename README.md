@@ -24,6 +24,6 @@ After downloading the source code, move to the working directory via:
 cd GSEXP
 
 Type the following to compile:
-
-'#0969DA' g++ -std=c++17 -pthread -o GSEXP utility.h ann_data.h input_param.h var_list.h pop_data.h main_analysis_module.h thread_analysis_module.h
-
+```
+g++ -std=c++17 -pthread -o GSEXP utility.h ann_data.h input_param.h var_list.h pop_data.h main_analysis_module.h thread_analysis_module.h
+```
