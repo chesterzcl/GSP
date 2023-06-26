@@ -1,11 +1,12 @@
 # Genetic Signature EXPlorer (GSEXP)
 
+## Description
 We provide a command-line tool used for fast and efficient whole-genome scale genetic signature discovery.
 
 ## Key Features
-1. Extracting variants and outputing 
-2. Identifying and outputing genetic sigantures statisfying user-defined population frequency constraints.
-3. Profiling user-defined sample group(s) for exclusively owned genetic signatures.
-4.  
-5. Identifying Short Tandem Repeats(STR) from multi-allelic loci and profiling based on expansion/contraction status.
-6. 
+1. Basic variants extraction based on annotation flags.
+2. Calculation of variant frequency based on user-defined sample group label.
+3. Profiling exclusively owned genetic signatures of a single sample group or shared genetic signatures among multiple sample groups.
+4. Identification of bi-allelic genetic signatures statisfying user-defined population frequency constraints.
+5. Identification of Short Tandem Repeats(STR) from multi-allelic loci and profiling based on expansion/contraction status.
+6. Independent discovery and validation of genetic sigantures in different variant datasets. 
