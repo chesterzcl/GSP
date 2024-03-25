@@ -13,11 +13,11 @@ using namespace std;
 
 class input_param{
 	public:
-		double pop1_upper,pop1_lower,pop2_upper,pop2_lower,af,sample_frac;
-		int min_sample,min_sample_tar,min_sample_ref,thread_num,analysis_mode,pop_num,min_depth,max_admix_pop,max_homo_pop,seed,min_rep_size,rep_num;
-		string ann_flag,ann_file,var_list_file,pop_file,vcf_file,output_file,depth_file;
+		double pop1_upper,pop1_lower,pop2_upper,pop2_lower,af,sample_frac,mean_llh;
+		int eff_sample,min_sample,min_sample_tar,min_sample_ref,thread_num,analysis_mode,pop_num,min_depth,max_admix_pop,max_homo_pop,seed,min_rep_size,rep_num,experiment_times;
+		string ann_flag,ann_file,var_list_file,pop_file,vcf_file,output_file,depth_file,likelihood_file;
 		set<string> pop1,pop2,pop_all;
-		bool StrPrint,isGS,isEXP,no_splicing,kmeans,flip,dist_mode,exhaust_disc_mode,exhaust_valid_mode,output_per_sample_gt,bipop_mode,unipop_mode,gene_mode,unique_valid_mode,combine_all,STR_mode,INDEL_mode;
+		bool verbose,ml_mode,lh_mode,StrPrint,isGS,isEXP,no_splicing,kmeans,flip,dist_mode,exhaust_disc_mode,exhaust_valid_mode,output_per_sample_gt,bipop_mode,unipop_mode,gene_mode,unique_valid_mode,combine_all,STR_mode,INDEL_mode;
 
 		void reset_freq_param(){
 			min_depth=0;
@@ -34,15 +34,19 @@ class input_param{
 			seed=0;
 			sample_frac=1.0;
 			af=0.0;
+			mean_llh=1.0;
 			pop_num=0;
 			rep_num=1;
+			experiment_times=10;
 			ann_flag="";
 			var_list_file="";
 			depth_file="";
 			flip=false;
+			verbose=false;
 			no_splicing=false;
 			dist_mode=false;
 			gene_mode=false;
+			ml_mode=false;
 			exhaust_disc_mode=false;
 			exhaust_valid_mode=false;
 			output_per_sample_gt=false;
@@ -52,6 +56,7 @@ class input_param{
 			INDEL_mode=false;
 			combine_all=false;
 			unipop_mode=false;
+			lh_mode=false;
 			kmeans=false;
 			isEXP=false;
 			isGS=false;
@@ -223,6 +228,11 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			depth_file=argv[idx];
 			file_dict["Sample depth file: "]=argv[idx];
 			idx++;
+		}else if(cur_str=="-o-likelihood"){
+			idx++;
+			likelihood_file=argv[idx];
+			file_dict["Output likelihood table to: "]=argv[idx];
+			idx++;
 		}else if(cur_str=="--flag"){
 			idx++;
 			ann_flag=argv[idx];
@@ -236,7 +246,12 @@ void input_param::read_parameters(int argc, char const *argv[]){
 		}else if(cur_str=="--sample-frac"){
 			idx++;
 			sample_frac=stod(argv[idx]);
-			param_dict["Proportion of valid samples included in the analysis: "]=argv[idx];
+			param_dict["Sampling fraction: "]=argv[idx];
+			idx++;
+		}else if(cur_str=="--lh-thres"){
+			idx++;
+			mean_llh=stod(argv[idx]);
+			param_dict["Minimum average likelihood for signature qualification: "]=argv[idx];
 			idx++;
 		}else if(cur_str=="disc"){
 			exhaust_disc_mode=true;
@@ -275,6 +290,14 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			STR_mode=true;
 			analysis_dict["Analysis mode 9: "]="Discover Short Tandem Repeats(STR)";
 			idx++;
+		}else if(cur_str=="lhdisc"){
+			lh_mode=true;
+			analysis_dict["Analysis mode 10: "]="Likelihood based profiling";
+			idx++;
+		}else if(cur_str=="mldisc"){
+			ml_mode=true;
+			analysis_dict["Analysis mode 11: "]="Selflearning likelihood based profiling";
+			idx++;
 		}else if(cur_str=="--mins"){
 			idx++;
 			min_sample=stoi(argv[idx]);
@@ -310,6 +333,11 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			idx++;
 			rep_num=stoi(argv[idx]);
 			param_dict["Cutoff point for number of the repetitive units in STR: "]=to_string(rep_num);			
+			idx++;
+		}else if(cur_str=="--effsample"){
+			idx++;
+			eff_sample=stoi(argv[idx]);
+			param_dict["Minimum number of total reference samples: "]=to_string(min_sample_ref);			
 			idx++;
 		}else if(cur_str=="--mins-ref"){
 			idx++;
@@ -373,6 +401,10 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			idx++;
 			flip=true;
 			param_dict["Flip the ref/alt allele"]="";			
+		}else if(cur_str=="--verbose"){
+			idx++;
+			verbose=true;
+			param_dict["Run in verbose mode"]="";			
 		}else if(cur_str=="--INDEL"){
 			idx++;
 			INDEL_mode=true;
@@ -427,6 +459,10 @@ void input_param::launch_analysis_module(){
 		analysis_mode=8;
 	}else if(analysis_dict.count("Analysis mode 9: ")){
 		analysis_mode=9;
+	}else if(analysis_dict.count("Analysis mode 10: ")){
+		analysis_mode=10;
+	}else if(analysis_dict.count("Analysis mode 11: ")){
+		analysis_mode=11;
 	}
 }
 

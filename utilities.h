@@ -5,6 +5,7 @@
 #include<vector>
 #include<set>
 #include<cmath>
+#include<float.h>
 #include<cstdlib>
 #include<unordered_map>
 #include<map>
@@ -47,7 +48,11 @@ vector<string> read_char_delim_str(string& line,char delim){
 string generate_line_header(vector<string> line_vec){
 	vector<string> ann_vec=read_char_delim_str(line_vec[7],'|');
 	string lheader_str;
-	lheader_str=line_vec[0]+'\t'+line_vec[1]+'\t'+ann_vec[3]+'\t'+ann_vec[1]+'\t'+ann_vec[13]+'\t'+ann_vec[10];
+	if(ann_vec.size()>1){
+		lheader_str=line_vec[0]+'\t'+line_vec[1]+'\t'+ann_vec[3]+'\t'+ann_vec[1]+'\t'+ann_vec[13]+'\t'+ann_vec[10];
+	}else{
+		lheader_str=line_vec[0]+'\t'+line_vec[1];
+	}
 	return lheader_str;
 }
 
@@ -129,6 +134,20 @@ template <class T> pair<vector<T>,vector<T>> split_vec_into_two(double ratio,int
 	}
 	return make_pair(v1,v2);
 }
+
+// map<string,double> calculate_likelihood(vector<string>& line_vec, vector<string>& sample_idx_vec, unordered_map<string,set<int>>& sample_pop_idx_dict){
+// 	for (unordered_map<string,set<int>>::iterator i = sample_pop_idx_dict.begin(); i != sample_pop_idx_dict.end(); ++i){
+// 		int ;
+// 		int ;
+// 		for (set<int>::iterator j= i->second.begin(); j != i->second.end(); ++j){
+// 			int idx=*j;
+// 			string gene_str=line_vec[idx];
+			
+// 		}
+		
+// 	}
+
+// }
 
 string Find_diff_between_two_str_head(string str1,string str2){
 	string long_str,short_str,diff="";
