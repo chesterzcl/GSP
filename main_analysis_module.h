@@ -15,7 +15,7 @@ class main_analysis_module{
 		void output_file_header(ofstream& output,var_list& var,input_param param,pop_data pop,vector<string>& pop_vec){
 			string temp_str;
 			output<<"#Chromosome"<<'\t'<<"Position"<<'\t'<<"Gene"<<'\t'<<"Variant Type"<<'\t'<<"Mutation Position"<<'\t'<<"Amino Acid Change";
-			if(param.dist_mode||param.exhaust_disc_mode||param.unipop_mode||param.bipop_mode||param.gene_mode||param.STR_mode||param.lh_mode){
+			if(param.dist_mode||param.exhaust_disc_mode||param.unipop_mode||param.bipop_mode||param.gene_mode||param.STR_mode||param.lh_mode||param.ml_mode){
 				for (unordered_map<string,set<string> >::iterator i =  pop.pop_dict.begin(); i != pop.pop_dict.end(); ++i){
 					if(i->second.size()>=param.min_sample){
 						output<<'\t'<<i->first;

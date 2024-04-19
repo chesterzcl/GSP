@@ -23,7 +23,7 @@ int main(int argc, char const *argv[]){
 	if(tp.param.ann_file!=""){
 		tp.ann.load_annotation_db(tp.param.ann_file);
 	}
-	cout<<"Start variant discovery."<<endl;
+	cout<<"Launching analysis module."<<endl;
 	tp.pop.load_population_data(tp.param.pop_file);
 	tp.pop.index_data(tp.param.pop_file);
 	if(tp.param.depth_file.length()!=0){

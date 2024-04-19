@@ -43,6 +43,7 @@ class pop_data{
 				col_depth_dict[sample_col_dict[line_vec[0]]]=stod(line_vec[1])-2*stod(line_vec[2]);
 			}
 			cout<<"Sample read depth load complete."<<endl<<endl;
+			input.close();
 
 		}
 

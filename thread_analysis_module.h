@@ -62,9 +62,12 @@ class thread_analysis_module{
 			string line,header_str;
 			pair<int,string> temp_pair;
 			vector<pair<int,string> > sorted_vec(var_num);
-			input.open(ip_str);
+			ifstream input_sort;
+			ofstream output_sort;
+			input_sort.open(ip_str);
+			check_file_open_status(input_sort,ip_str);
 			int cur=0,cur_idx,temp_int;
-			while(getline(input,line)){
+			while(getline(input_sort,line)){
 				if(line[0]=='#'){
 					header_str=line;
 				}else{
@@ -83,14 +86,14 @@ class thread_analysis_module{
 					cur++;
 				}
 			}
-			input.close();
-			output.open(op_str);
-			check_file_open_status(output,op_str);
-			output<<header_str<<endl;
+			input_sort.close();
+			output_sort.open(op_str);
+			check_file_open_status(output_sort,op_str);
+			output_sort<<header_str<<endl;
 			for (int i = 0; i < sorted_vec.size(); ++i){
-				output<<sorted_vec[i].second<<endl;
+				output_sort<<sorted_vec[i].second<<endl;
 			}
-			output.close();
+			output_sort.close();
 		}	
 
 		unordered_map<string,set<int>> sample_from_valid_population(pop_data& pop,input_param& param){
@@ -890,18 +893,22 @@ class thread_analysis_module{
 			int valid_subpopulation_num=0;
 			if(param.sample_frac<1)
 			{
-				output<<"#Chromosome"<<'\t'<<"Position"<<'\t'<<"Gene"<<'\t'<<"Variant Type"<<'\t'<<"Mutation Position"<<'\t'<<"Amino Acid Change";
-				for (unordered_map<string,set<int> >::iterator i =  subsample_pop_col_dict.begin(); i != subsample_pop_col_dict.end(); ++i)
-				{
-					if(i->second.size()>=param.min_sample)
+				if(param.analysis_mode==11){
+					main.output_file_header(output,var,param,pop,pop_vec);
+				}else{
+					output<<"#Chromosome"<<'\t'<<"Position"<<'\t'<<"Gene"<<'\t'<<"Variant Type"<<'\t'<<"Mutation Position"<<'\t'<<"Amino Acid Change";
+					for (unordered_map<string,set<int> >::iterator i =  subsample_pop_col_dict.begin(); i != subsample_pop_col_dict.end(); ++i)
 					{
-						output<<'\t'<<i->first;
-						pop_vec.push_back(i->first);
-						valid_subpopulation_num++;
+						if(i->second.size()>=param.min_sample)
+						{
+							output<<'\t'<<i->first;
+							pop_vec.push_back(i->first);
+							valid_subpopulation_num++;
+						}
 					}
+					output<<endl;
+					cout<<"Number of valid subpopulations:"<<valid_subpopulation_num<<endl;
 				}
-				output<<endl;
-				cout<<"Number of valid subpopulations:"<<valid_subpopulation_num<<endl;
 			}else{
 				main.output_file_header(output,var,param,pop,pop_vec);
 			}
@@ -1254,6 +1261,8 @@ class thread_analysis_module{
 			string gt_str="",op_str="";
 			int cumu_total=0,cumu_case=0;
 			int valid_pop_num=0;
+			double max_freq=-1;
+			string max_pop="";
 			if(param.sample_frac==1)
 			{
 				//Analyze with full dataset
@@ -1329,6 +1338,10 @@ class thread_analysis_module{
 						{
 							if (freq>=param.pop1_lower&&freq<=param.pop1_upper)
 							{
+								if(freq>max_freq){
+									max_freq=freq;
+									max_pop=pop_vec[i];
+								}
 								var_pop_vec.push_back(pop_vec[i]);
 								pop1_num+=1;
 							}else{
@@ -1425,6 +1438,10 @@ class thread_analysis_module{
 							{
 								if (freq>=param.pop1_lower&&freq<=param.pop1_upper)
 								{
+									if(freq>max_freq){
+										max_freq=freq;
+										max_pop=pop_vec[i];
+									}
 									var_pop_vec.push_back(pop_vec[i]);
 									pop1_num+=1;
 								}else{
@@ -1500,6 +1517,12 @@ class thread_analysis_module{
 			}
 			//output freq
 			hline_str+="|"+line_vec[3]+">"+line_vec[4];
+			//output tar_pop
+			if(max_freq>0){
+				hline_str+="|"+max_pop;
+			}
+			
+
 			if(param.combine_all)
 			{
 				op_str=hline_str;
@@ -1570,7 +1593,8 @@ class thread_analysis_module{
 		}
 
 		//Machine learning module
-		void ml_variant_reader(int j,pop_data& pop,input_param& param,var_list& var,ann_data& ann,int thread_num){
+		void ml_variant_reader(int j,pop_data& pop,input_param& param,var_list& var,ann_data& ann,int thread_num)
+		{
 			input.open(input_ad);
 			check_file_open_status(input,input_ad);
 			//Load true positive labels(if provided)
@@ -1642,6 +1666,7 @@ class thread_analysis_module{
 
 					line_cter++;
 					var_cter=sp_q.size();
+
 					while(sp_q.size()>=(thread_num-1)*200000)
 					{
 						this_thread::sleep_for(chrono::milliseconds(1000));
@@ -1750,19 +1775,21 @@ class thread_analysis_module{
 							optimal_thres=j->first;
 						}
 					}
-					// cout<<"Subsample run "<<i+1<<':'<<endl;
-					// cout<<optimal_TPR<<'\t'<<optimal_FPR<<endl;
-					// cout<<optimal_thres<<'\t'<<optimal_diff<<endl;
+					cout<<"Subsample run "<<i+1<<':'<<endl;
+					cout<<optimal_TPR<<'\t'<<optimal_FPR<<endl;
+					cout<<optimal_thres<<'\t'<<optimal_diff<<endl;
 					cumu_mean_llh+=optimal_thres;
 				}
 			}
+			cout<<"Valid run count:"<<valid_run_cnt<<endl;
 			double mean_optimal_thres=cumu_mean_llh/valid_run_cnt;
 			cout<<"Mean llh threshold for classification is: "<<mean_optimal_thres<<endl<<endl<<endl;
 			param.mean_llh=mean_optimal_thres;
 			param.sample_frac=1;
 		}
 
-		void ml_loader(pop_data& pop,input_param& param,var_list& var,ann_data& ann){
+		void ml_loader(pop_data& pop,input_param& param,var_list& var,ann_data& ann)
+		{
 			vector<pair<double,string>> max_ll_vec; 
 			string signature_pop;
 			//Dim1=>subsamples
@@ -1865,7 +1892,8 @@ class thread_analysis_module{
 			g_ready=true;
 		}
 
-		pair<vector<pair<double,string>>,string> classification_boundary_learner(pop_data& pop,input_param& param,var_list& var,ann_data& ann,vector<string>& line_vec,vector<string>& pop_vec,bool & llisvalid){
+		pair<vector<pair<double,string>>,string> classification_boundary_learner(pop_data& pop,input_param& param,var_list& var,ann_data& ann,vector<string>& line_vec,vector<string>& pop_vec,bool & llisvalid)
+		{
 			vector<pair<double,string>> rst_mat;
 			vector<double> freq_ratio_vec;
 			vector<pair<double,string>> max_ll_vec;
@@ -1889,6 +1917,7 @@ class thread_analysis_module{
 				{
 					if(param.depth_file.length()!=0)
 					{
+
 						if(check_read_depth(line_vec[*j],min(10.0,pop.col_depth_dict[*j])))
 						{
 							total_num+=1;
@@ -1944,6 +1973,7 @@ class thread_analysis_module{
 					not_all_ref=true;
 				}
 			}
+
 			//Determine if signature pop qualifies
 			if(pop_tar_num==param.pop_num&&pop_neither_num==0&&cumu_total>=param.eff_sample&&not_all_var&&not_all_ref)
 			{
@@ -1955,21 +1985,20 @@ class thread_analysis_module{
 			// cout<<signature_pop<<endl;
 
 			//*******************************************************************//
-
 			//Calculate log likelihood function for different subsamples
 			for (int j = 0; j !=subsample_idx_dict_vec.size(); ++j)
 			{
 				int valid_pop_num=0;
 				pop_subsample_vec.clear();
 				freq_ratio_vec.clear();
-				// cout<<"Run ll learning for subsample "<<j+1<<endl;
+				
 				//Traverse all subsamples by population label
 				for (int i = 0; i !=pop_vec.size(); ++i)
 				{
 					//Examine for valid subsampled population
 					if(subsample_idx_dict_vec[j].count(pop_vec[i])&&subsample_idx_dict_vec[j][pop_vec[i]].size()>=param.min_sample)
 					{
-						// cout<<'\t'<<pop_vec[i]<<':'<<subsample_idx_dict_vec[j][pop_vec[i]].size();
+						
 						total_num=0;
 						case_num=0;
 						for (set<int>::iterator k=subsample_idx_dict_vec[j][pop_vec[i]].begin(); k!=subsample_idx_dict_vec[j][pop_vec[i]].end(); ++k)
@@ -2017,15 +2046,15 @@ class thread_analysis_module{
 							// 	cout<<'\t'<<freq;
 							// }		
 						}else{
+							pop_subsample_vec.push_back("NA");
 							freq_ratio_vec.push_back(-1);
 						}		
 					}
-					
 				}
+
 				// if(j==0){
 				// 	cout<<endl<<valid_pop_num<<endl;
 				// }
-				
 
 				//Calculate likelihood ratio for all valid sample
 				vector<double> loglikelihood_vec;
@@ -2039,20 +2068,17 @@ class thread_analysis_module{
 						for(int j=0;j<freq_ratio_vec.size();++j)
 						{	
 							if(freq_ratio_vec[j]!=-1&&j!=i)
-							{							
-								loglikelihood+=log(1-freq_ratio_vec[j]);								
+							{											
+								loglikelihood+=log(1-freq_ratio_vec[j]);
 							}	
 						}
+
 						if(loglikelihood>-DBL_MAX)
 						{
 							llisvalid=true;
 						}	
 						double mean_loglikelihood=loglikelihood/valid_pop_num;
 
-						// if(j==0){
-						// 	cout<<'\t'<<i<<':'<<pop_subsample_vec[i]<<':'<<mean_loglikelihood;
-						// }
-						
 						if(mean_loglikelihood>max_llh)
 						{
 							max_llh=mean_loglikelihood;
@@ -2063,6 +2089,9 @@ class thread_analysis_module{
 						loglikelihood_vec.push_back(1);
 					}
 				}
+
+
+
 				//Output maxllh
 				if(llisvalid)
 				{
@@ -2081,12 +2110,14 @@ class thread_analysis_module{
 					max_ll_vec.push_back({9,"NA"});
 				}
 			}
+
 			return {max_ll_vec,signature_pop};
 		}
 
 		//Learning subsamples with fixed parameters
 
-		void llh_ml_loader(pop_data& pop,input_param& param,var_list& var,ann_data& ann){
+		void llh_ml_loader(pop_data& pop,input_param& param,var_list& var,ann_data& ann)
+		{
 			pair<string,string> lr_freq_pair;
 			pair<string,int> q_pair;
 			// cout<<"LLH ml loader launched."<<endl;
@@ -2134,7 +2165,8 @@ class thread_analysis_module{
 			g_ready=true;
 		}
 
-		pair<string,string> signature_discovery_ml(pop_data& pop,input_param& param,var_list& var,ann_data& ann,vector<string>& line_vec,vector<string>& pop_vec,bool& is_signature){
+		pair<string,string> signature_discovery_ml(pop_data& pop,input_param& param,var_list& var,ann_data& ann,vector<string>& line_vec,vector<string>& pop_vec,bool& is_signature)
+		{
 			int total_num,case_num,total_num2,case_num2,pop1_num=0,pop_neither_num=0;
 			int valid_pop_num=0;
 			double freq;
@@ -2247,7 +2279,7 @@ class thread_analysis_module{
 			int max_ll_idx=0;
 			for (int i = 0; i!=loglikelihood_vec.size(); ++i)
 			{
-				if(loglikelihood_vec[i]>max_ll){
+				if(loglikelihood_vec[i]!=1&&loglikelihood_vec[i]>max_ll){
 					max_ll=loglikelihood_vec[i];
 					max_ll_idx=i;
 				}
