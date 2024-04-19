@@ -38,19 +38,38 @@ Then the user can run the tool by directly invoking:
 ```
 ./GSEXP
 ```
-A sample code for identifying whole-genome GS exclusively presented in a single target group is:
-```
-./GSEXP \
-unique \
--i SampleInput \
--o SampleOutput \
--p SampleGroupLabelFile \
--t SampleThreadNumber \
---mind 10 \
---mins 3 \
---popnum 1 \
---p1l 0.9 --p1u 1.0 --p2l 0.0 --p2u 0.1
-```
+
 After invoking the tool, sucessfully interpreted arguments will be printed out before analysis.
 
 For a more detailed guide to use the tool, please move to the wiki section of this repo.
+
+## Quick start
+
+For signature discovery of single population with fixed-frequency based algorithm:
+```
+GSEXP \
+unique \
+-i Input.vcf \
+-o Output.txt \
+-p PopulationLabel.txt \
+--popnum 1 \
+--p1l 0.9 --p1u 1.0 --p2l 0.0 --p2u 0.1
+```
+
+For signature discovery of single population with machine-learning based adaptive algorithm:
+```
+GSEXP \
+mldisc \
+-i Input.vcf \
+-o Output.txt \
+-p PopulationLabel.txt \
+--sample-frac 0.8 \
+--popnum 1 \
+--p1l 0.9 --p1u 1.0 --p2l 0.0 --p2u 0.1
+```
+
+
+
+
+
+
