@@ -1,0 +1,2 @@
+#Chromosome	Position	Genomic region	Variant type	Annotation	Signature carrying population
+6	20617468	HS3ST4	intron_variant		|ref|A>G|MANCHESTER TERRIER	MANCHESTER TERRIER:5/5
