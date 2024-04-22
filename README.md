@@ -32,7 +32,7 @@ cd GSEXP
 ```
 Then type the following to compile:
 ```
-g++ -std=c++17 -pthread -o GSEXP utility.h ann_data.h input_param.h var_list.h pop_data.h main_analysis_module.h thread_analysis_module.h
+g++ -std=c++14 -pthread -o GSEXP utility.h ann_data.h input_param.h var_list.h pop_data.h main_analysis_module.h thread_analysis_module.h
 ```
 Then the user can run the tool by directly invoking:
 ```
@@ -67,6 +67,8 @@ mldisc \
 --popnum 1 \
 --p1l 0.9 --p1u 1.0 --p2l 0.0 --p2u 0.1
 ```
+
+
 
 
 

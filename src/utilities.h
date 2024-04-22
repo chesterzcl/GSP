@@ -113,7 +113,7 @@ bool check_read_depth(string& geno_field,double min_depth){
 	return true;
 }
 
-template <class T> pair<vector<T>,vector<T>> split_vec_into_two(double ratio,int seed,vector<T>& ip_vec){
+template <class T> pair<vector<T>,vector<T> > split_vec_into_two(double ratio,int seed,vector<T>& ip_vec){
 	int N=ip_vec.size();
 	int N1=N*ratio;
 	int N2=N-N1;

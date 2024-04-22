@@ -96,7 +96,7 @@ class thread_analysis_module{
 			output_sort.close();
 		}	
 
-		unordered_map<string,set<int>> sample_from_valid_population(pop_data& pop,input_param& param){
+		unordered_map<string,set<int> > sample_from_valid_population(pop_data& pop,input_param& param){
 			vector<int> subsample_idx_vec;
 			for(unordered_map<string,set<int> >::iterator i=pop.pop_col_dict.begin();i!=pop.pop_col_dict.end();++i){
 				if(i->second.size()>=param.min_sample){
@@ -121,7 +121,7 @@ class thread_analysis_module{
 				}
 				subsample_temp_pop_col_dict[pop_name].insert(sample_idx);
 			}
-			unordered_map<string,set<int>> subsample_pop_col_dict_op;
+			unordered_map<string,set<int> > subsample_pop_col_dict_op;
 			for(unordered_map<string,set<int> >::iterator i=subsample_temp_pop_col_dict.begin();i!=subsample_temp_pop_col_dict.end();++i){
 				if(i->second.size()>=param.min_sample){
 					subsample_pop_col_dict_op[i->first]=i->second;
@@ -1002,7 +1002,7 @@ class thread_analysis_module{
 				temp_output.open(output_ad+".sample_partition_list");
 				temp_output<<"#Breed\tNumber of sampled sample\tNumber of left-over samples"<<endl;
 				// cout<<subsample_pop_col_dict.size()<<endl;
-				for (unordered_map<string,set<int>>::iterator i = subsample_pop_col_dict.begin(); i !=subsample_pop_col_dict.end(); ++i)
+				for (unordered_map<string,set<int> >::iterator i = subsample_pop_col_dict.begin(); i !=subsample_pop_col_dict.end(); ++i)
 				{
 					temp_output<<i->first<<'\t'<<i->second.size()<<'\t'<<pop.pop_col_dict[i->first].size()-i->second.size()<<endl;
 				}
@@ -1251,7 +1251,7 @@ class thread_analysis_module{
 			g_ready=true;
 		}
 
-		pair<vector<string>,vector<string>> discover_unique_variant(pop_data& pop,input_param& param,var_list& var,ann_data& ann,vector<string>& line_vec,vector<string>& pop_vec,vector<int>& ind_vec){
+		pair<vector<string>,vector<string> > discover_unique_variant(pop_data& pop,input_param& param,var_list& var,ann_data& ann,vector<string>& line_vec,vector<string>& pop_vec,vector<int>& ind_vec){
 			int ind1=1,ind2=1,ind3=1,ind4=1,ind5=1,valid_ind1=0,valid_ind2=0;
 			int total_num,case_num,total_num2,case_num2,pop1_num=0,pop_neither_num=0;
 			double freq;
@@ -1706,10 +1706,10 @@ class thread_analysis_module{
 			g_ready=true;
 
 			//Output classification boundaries
-			map<double,vector<int>> empty_diag_dict;
-			vector<map<double,vector<int>>> sample_run_diag_dict(param.experiment_times,empty_diag_dict);
+			map<double,vector<int> > empty_diag_dict;
+			vector<map<double,vector<int> > > sample_run_diag_dict(param.experiment_times,empty_diag_dict);
 			//Sort diag result by sampling runs
-			for (map<double,vector<vector<int>>>::iterator i = llthres_dict.begin(); i !=llthres_dict.end(); ++i)
+			for (map<double,vector<vector<int> > >::iterator i = llthres_dict.begin(); i !=llthres_dict.end(); ++i)
 			{
 				for (int j = 0; j !=i->second.size() ; ++j)
 				{
@@ -1725,7 +1725,7 @@ class thread_analysis_module{
 			for (int i = 0; i != sample_run_diag_dict.size(); ++i)
 			{
 				// cout<<"Threshold\tTP\tFP\tTN\tFN\tTPR\tFPR\tPrecision\tRecall\tAccuracy"<<endl;
-				for (map<double,vector<int>>::reverse_iterator j = sample_run_diag_dict[i].rbegin(); j != sample_run_diag_dict[i].rend(); ++j)
+				for (map<double,vector<int> >::reverse_iterator j = sample_run_diag_dict[i].rbegin(); j != sample_run_diag_dict[i].rend(); ++j)
 				{
 					int total=j->second[0]+j->second[1]+j->second[2]+j->second[3];
 					double TPR=(double) j->second[0]/(j->second[0]+j->second[3]);
@@ -1762,7 +1762,7 @@ class thread_analysis_module{
 					valid_run_cnt++;
 					double optimal_diff=-1;
 					double optimal_TPR,optimal_FPR,optimal_thres;
-					for (map<double,vector<int>>::reverse_iterator j = sample_run_diag_dict[i].rbegin(); j != sample_run_diag_dict[i].rend(); ++j)
+					for (map<double,vector<int> >::reverse_iterator j = sample_run_diag_dict[i].rbegin(); j != sample_run_diag_dict[i].rend(); ++j)
 					{
 						double TPR=(double) j->second[0]/(j->second[0]+j->second[3]);
 						double FPR=(double) j->second[1]/(j->second[2]+j->second[1]);
@@ -1790,7 +1790,7 @@ class thread_analysis_module{
 
 		void ml_loader(pop_data& pop,input_param& param,var_list& var,ann_data& ann)
 		{
-			vector<pair<double,string>> max_ll_vec; 
+			vector<pair<double,string> > max_ll_vec; 
 			string signature_pop;
 			//Dim1=>subsamples
 			//Dim2=>maxlr
@@ -1813,7 +1813,7 @@ class thread_analysis_module{
 					int line_mark=q_pair.second;
 					bool llisvalid=false;
 					vector<string> line_vec=read_char_delim_str(ip_str,'\t');
-					pair<vector<pair<double,string>>,string> temp_pair=classification_boundary_learner(pop,param,var,ann,line_vec,pop_vec,llisvalid);
+					pair<vector<pair<double,string> >,string> temp_pair=classification_boundary_learner(pop,param,var,ann,line_vec,pop_vec,llisvalid);
 					max_ll_vec=temp_pair.first;
 					signature_pop=temp_pair.second;
 					//Update diagnostics dict
@@ -1824,7 +1824,7 @@ class thread_analysis_module{
 					{
 						//Traverse llthres vec
 						//{TP,FP,TN,FN}
-						for (map<double,vector<vector<int>>>::iterator i = llthres_dict.begin(); i !=llthres_dict.end(); ++i)
+						for (map<double,vector<vector<int> > >::iterator i = llthres_dict.begin(); i !=llthres_dict.end(); ++i)
 						{
 							double thres=i->first;
 						
@@ -1892,11 +1892,11 @@ class thread_analysis_module{
 			g_ready=true;
 		}
 
-		pair<vector<pair<double,string>>,string> classification_boundary_learner(pop_data& pop,input_param& param,var_list& var,ann_data& ann,vector<string>& line_vec,vector<string>& pop_vec,bool & llisvalid)
+		pair<vector<pair<double,string> >,string> classification_boundary_learner(pop_data& pop,input_param& param,var_list& var,ann_data& ann,vector<string>& line_vec,vector<string>& pop_vec,bool & llisvalid)
 		{
-			vector<pair<double,string>> rst_mat;
+			vector<pair<double,string> > rst_mat;
 			vector<double> freq_ratio_vec;
-			vector<pair<double,string>> max_ll_vec;
+			vector<pair<double,string> > max_ll_vec;
 			vector<string> pop_subsample_vec;
 			string signature_pop="NA";
 			int total_num=0,case_num=0;
@@ -2840,22 +2840,22 @@ class thread_analysis_module{
 		string input_ad,output_ad,temp_ad;
 		bool completed=false;
 		int var_num=0,row_cur=0,eff_var_num=0;
-		unordered_map<string,unordered_map<int,int>> gene_mutation_dict;
+		unordered_map<string,unordered_map<int,int> > gene_mutation_dict;
 		vector<int> subsample_idx_vec_disc,subsample_idx_vec_valid;
-		unordered_map<string,set<int>> subsample_pop_col_dict;
-		map<double,vector<vector<int>>> llthres_dict;//TP,FP,TN,FN
-		vector<unordered_map<string,set<int>>> subsample_idx_dict_vec;
+		unordered_map<string,set<int> > subsample_pop_col_dict;
+		map<double,vector<vector<int> > > llthres_dict;//TP,FP,TN,FN
+		vector<unordered_map<string,set<int> > > subsample_idx_dict_vec;
 		unsigned int th_num=thread::hardware_concurrency();
 		vector<int> cter_vec;
 		vector<string> pop_vec;
 		vector<string> subsample_pop_vec;
-		map<double,vector<vector<int>>> logllh_dict;
+		map<double,vector<vector<int> > > logllh_dict;
 		//dim1 logllh threshold
 		//dim2 subsamples
 		//dim3 diags
 		queue<string> s_q;
-		queue<pair<string,int>> sp_q;		
-		queue<pair<string,pair<int,int>>> si_q;
+		queue<pair<string,int> > sp_q;		
+		queue<pair<string,pair<int,int> > > si_q;
 		vector<thread> th_vec;
 };
 
