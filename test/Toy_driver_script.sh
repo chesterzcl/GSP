@@ -35,8 +35,8 @@ lhdisc \
 --popnum 1 \
 --p1l ${upper} --p1u 1.0 --p2l 0.0 --p2u ${lower} 
 
-${dir}/Postprocessing ${dir} Toy_fixed_ref
-${dir}/Postprocessing ${dir} Toy_ml_ref
+${tool_dir}/Postprocessing ${dir} Toy_fixed_ref
+${tool_dir}/Postprocessing ${dir} Toy_ml_ref
 
 echo "Number of signature discovered with adaptive module:"
 echo $(($(wc -l<${dir}/Toy_ml_ref_filtered_300.txt)-1))
