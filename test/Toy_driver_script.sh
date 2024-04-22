@@ -8,7 +8,7 @@ eff_sample=300
 upper=0.9
 lower=0.1
 
-${tool_dir}/PFA-0.99 \
+${tool_dir}/GSEXP \
 unique \
 -i ${dir}/Toy.vcf \
 -o ${dir}/Toy_fixed_ref.txt \
@@ -21,7 +21,7 @@ unique \
 --popnum 1 \
 --p1l ${upper} --p1u 1.0 --p2l 0.0 --p2u ${lower} 
 
-${tool_dir}/PFA-0.99 \
+${tool_dir}/GSEXP \
 lhdisc \
 -i ${dir}/Toy.vcf \
 -o ${dir}/Toy_ml_ref.txt \
@@ -38,8 +38,11 @@ lhdisc \
 ${tool_dir}/Postprocessing ${dir} Toy_fixed_ref
 ${tool_dir}/Postprocessing ${dir} Toy_ml_ref
 
-echo "Number of signature discovered with adaptive module:"
+echo "====================================================="
+echo "Number of signature discovered with the adaptive discovery module:"
 echo $(($(wc -l<${dir}/Toy_ml_ref_filtered_300.txt)-1))
-
-echo "Number of signature discovered with fixed-frequency module:"
+echo "-----------------------------------------------------"
+echo "Number of signature discovered with the fixed-frequency based discovery module:"
 echo $(($(wc -l<${dir}/Toy_fixed_ref_filtered_300.txt)-1))
+echo "====================================================="
+

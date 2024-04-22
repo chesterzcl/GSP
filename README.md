@@ -6,9 +6,9 @@ We provide a command-line tool used for fast and efficient whole-genome scale ge
 2. A sample group label file indicating the membership of each individual sample.
 
 Besides, three main customizable modules allow this tool to fulfill a variety of reserach needs. They are:
-1. Loci annotation flags (position range, variant type, variant size, .etc.)
-2. Variant quality metrics (minimum tolerable sequencing depth)
-3. Population frequency constraints (frequency ranges in target and reference sample groups)
+1. Loci annotation flags (position range, variant type, variant size, .etc.).
+2. Variant quality metrics (minimum tolerable sequencing depth).
+3. Signature exclusivity level (targeted frequency ranges in target and reference sample groups).
 
 One successful application of this tool was described in :
 
@@ -24,22 +24,27 @@ Li, Z., Wang, Z., Chen, Z. et al. Systematically identifying genetic signatures 
 6. Independent discovery and validation of genetic sigantures in different variant datasets. 
 
 ## Installation
-We recommand using GCCv11.2 or greater for compilation of this tool.
+A cmakelist file was configured to build relevant files.
 
-After downloading the source code, move to the working directory via:
+To compile the binaries (the signature profiler and one testing program), simply run:
 ```
-cd GSEXP
-```
-Then type the following to compile:
-```
-g++ -std=c++14 -pthread -o GSEXP utility.h ann_data.h input_param.h var_list.h pop_data.h main_analysis_module.h thread_analysis_module.h
-```
-Then the user can run the tool by directly invoking:
-```
-./GSEXP
-```
+##Moving to the root directory
+cd ../tool_dir
 
-After invoking the tool, sucessfully interpreted arguments will be printed out before analysis.
+#Configure build files
+cmake .
+
+#Build binaries
+make
+```
+GCC v8.0/Clang 5 or greater is required for the compilation of this tool.
+
+To test the binaries, simply execute the tool on a toy dataset using a pre-configured script:
+```
+##Run the pre-configured bash script
+bash ../tool_dir/test/Toy_driver_script.sh
+```
+In the output, the adaptive discovery module and fixed-frequency based module should identify 2 and 3 signatures from the toy dataset, respectively.
 
 For a more detailed guide to use the tool, please move to the wiki section of this repo.
 
