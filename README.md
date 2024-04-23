@@ -26,11 +26,8 @@ Li, Z., Wang, Z., Chen, Z. et al. Systematically identifying genetic signatures 
 ## Installation
 A cmakelist file was configured to build relevant files.
 
-To compile the binaries (the signature profiler and one testing program), simply run:
+To compile the binaries (the signature profiler and one testing program), first move to the root directory where the tool locates and simply run:
 ```
-##Moving to the root directory
-cd ../tool_dir
-
 #Configure build files
 cmake .
 
@@ -39,7 +36,7 @@ make
 ```
 GCC v8.0/Clang 5 or greater is required for the compilation of this tool.
 
-To test the binaries, simply execute the tool on a toy dataset using a pre-configured script:
+To test the binaries, execute the tool on a toy dataset using a pre-configured script:
 ```
 ##Run the pre-configured bash script
 bash ../tool_dir/test/Toy_driver_script.sh
