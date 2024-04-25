@@ -38,8 +38,11 @@ GCC v8.0/Clang 5 or greater is required for the compilation of this tool.
 
 To test the binaries, execute the tool on a toy dataset using a pre-configured script:
 ```
-##Run the pre-configured bash script
-bash ../tool_dir/test/Toy_driver_script.sh
+#Head to the test directory
+cd test
+
+#Run the pre-configured bash script
+bash Toy_driver_script.sh
 ```
 In the output, the adaptive discovery module and fixed-frequency based module should identify 2 and 3 signatures from the toy dataset, respectively.
 
