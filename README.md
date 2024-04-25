@@ -24,6 +24,13 @@ Li, Z., Wang, Z., Chen, Z. et al. Systematically identifying genetic signatures 
 6. Independent discovery and validation of genetic sigantures in different variant datasets. 
 
 ## Installation
+
+To install, first download the source code or directly clone from this repo
+
+```
+git clone https://github.com/Chester-ZcL/GSEXP.git
+```
+
 A cmakelist file was configured to build relevant files.
 
 To compile the binaries (the signature profiler and one testing program), first move to the root directory where the tool locates and simply run:
