@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 3.10)
 
+set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+
 project(GSEXP)
 
 add_executable(GSEXP src/utilities.h src/ann_data.h src/input_param.h src/var_list.h src/pop_data.h src/main_analysis_module.h src/thread_analysis_module.h src/PFA-0.99.cpp)
