@@ -21,3 +21,9 @@ target_link_libraries(GSEXP PRIVATE Threads::Threads)
 project(test_program)
 
 add_executable(Postprocessing src/Postprocessing.cpp)
+
+project(utility_program)
+
+add_executable(Get_trimming_parameter_len utilities/Get_trimming_parameter_len.cpp)
+
+add_executable(Get_trimming_parameter_qual utilities/Get_trimming_parameter_qual.cpp)
