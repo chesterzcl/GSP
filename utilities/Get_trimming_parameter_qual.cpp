@@ -59,8 +59,7 @@ string find_str_after_nth_char(string& str,int n,char delim){
 
 int main(int argc, char const *argv[])
 {
-	string dir=argv[1];
-	string ip=argv[2];
+	string input_file=argv[1];
 	string line;
 	vector<string> line_vec;
 	ifstream input;
@@ -70,7 +69,7 @@ int main(int argc, char const *argv[])
 	double total_base_num=0;
 	string prob="Per base sequence quality";
 	map<int,double> qual_dict;
-	input.open(dir+'/'+ip);
+	input.open(input_file);
 	while(getline(input,line)){
 			//Start scanning
 			if(found){
