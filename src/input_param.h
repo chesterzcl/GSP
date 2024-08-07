@@ -298,12 +298,12 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			ml_mode=true;
 			analysis_dict["Analysis mode 11: "]="Selflearning likelihood based profiling";
 			idx++;
-		}else if(cur_str=="--mins"){
+		}else if(cur_str=="--min-sample"){
 			idx++;
 			min_sample=stoi(argv[idx]);
 			param_dict["Minimum number of samples allowed for population inclusion: "]=to_string(min_sample);			
 			idx++;
-		}else if(cur_str=="--mins-tar"){
+		}else if(cur_str=="--min-tar"){
 			idx++;
 			min_sample_tar=stoi(argv[idx]);
 			param_dict["Minimum number of samples allowed for target population inclusion: "]=to_string(min_sample_tar);			
@@ -339,12 +339,12 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			eff_sample=stoi(argv[idx]);
 			param_dict["Minimum number of total reference samples: "]=to_string(min_sample_ref);			
 			idx++;
-		}else if(cur_str=="--mins-ref"){
+		}else if(cur_str=="--min-ref"){
 			idx++;
 			min_sample_ref=stoi(argv[idx]);
 			param_dict["Minimum number of samples allowed for reference population inclusion: "]=to_string(min_sample_ref);			
 			idx++;
-		}else if(cur_str=="--mind"){
+		}else if(cur_str=="--min-depth"){
 			idx++;
 			min_depth=stoi(argv[idx]);
 			param_dict["Minimum read depth for a variant to be included in the analysis: "]=to_string(min_depth);			
@@ -359,30 +359,30 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			max_homo_pop=stoi(argv[idx]);
 			param_dict["Maximum number of homogeneous population allowed in the analysis: "]=to_string(max_homo_pop);			
 			idx++;
-		}else if(cur_str=="--p1l"){
+		}else if(cur_str=="--tar-lower"){
 			idx++;
 			pop1_lower=stod(argv[idx]);
-			param_dict["Pop1 lower frequency boundary: "]=to_string(pop1_lower);			
+			param_dict["Target group lower signature variant frequency boundary: "]=to_string(pop1_lower);			
 			idx++;
-		}else if(cur_str=="--p1u"){
+		}else if(cur_str=="--tar-upper"){
 			idx++;
 			pop1_upper=stod(argv[idx]);
-			param_dict["Pop1 upper frequency boundary: "]=to_string(pop1_upper);			
+			param_dict["Target group upper signature variant frequency boundary: "]=to_string(pop1_upper);			
 			idx++;
-		}else if(cur_str=="--p2l"){
+		}else if(cur_str=="--ref-lower"){
 			idx++;
 			pop2_lower=stod(argv[idx]);
-			param_dict["Pop2 lower frequency boundary: "]=to_string(pop2_lower);			
+			param_dict["Reference group lower non-signature variant frequency boundary: "]=to_string(pop2_lower);			
 			idx++;
-		}else if(cur_str=="--p2u"){
+		}else if(cur_str=="--ref-upper"){
 			idx++;
 			pop2_upper=stod(argv[idx]);
-			param_dict["Pop2 upper frequency boundary: "]=to_string(pop2_upper);			
+			param_dict["Reference group upper non-signature variant frequency boundary: "]=to_string(pop2_upper);			
 			idx++;
-		}else if(cur_str=="--popnum"){
+		}else if(cur_str=="--group-num"){
 			idx++;
 			pop_num=stoi(argv[idx]);
-			param_dict["Number of subpopulations included for shared pattern discovery: "]=to_string(pop_num);			
+			param_dict["Number of groups included for shared pattern discovery: "]=to_string(pop_num);			
 			idx++;
 		}else if(cur_str=="--af"){
 			idx++;
