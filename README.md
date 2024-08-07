@@ -35,6 +35,9 @@ A cmakelist file was configured to build relevant files.
 
 To compile the binaries (the signature profiler and one testing program), first move to the root directory where the tool locates and simply run:
 ```
+#Move to tool directory
+cd GSEXP
+
 #Configure build files
 cmake .
 
