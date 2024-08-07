@@ -213,6 +213,11 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			output_file=argv[idx];
 			file_dict["Output variant list file: "]=argv[idx];
 			idx++;
+		}else if(cur_str=="-o-likelihood"){
+			idx++;
+			likelihood_file=argv[idx];
+			file_dict["Output likelihood table to: "]=argv[idx];
+			idx++;
 		}else if(cur_str=="-t"){
 			idx++;
 			thread_num=stoi(argv[idx]);
@@ -247,7 +252,7 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			idx++;
 		}else if(cur_str=="unique"){
 			unipop_mode=true;
-			analysis_dict["Analysis mode 5: "]="Unique pattern search for all population";
+			analysis_dict["Analysis mode 5: "]="Unique pattern search for all group";
 			idx++;
 		}else if(cur_str=="freq"){
 			unipop_mode=true;
@@ -273,10 +278,55 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			ml_mode=true;
 			analysis_dict["Analysis mode 11: "]="Selflearning likelihood based profiling";
 			idx++;
-		}else if(cur_str=="-o-likelihood"){
+		}else if(cur_str=="--tar-lower"){
 			idx++;
-			likelihood_file=argv[idx];
-			file_dict["Output likelihood table to: "]=argv[idx];
+			pop1_lower=stod(argv[idx]);
+			param_dict["Target group lower signature variant frequency boundary: "]=to_string(pop1_lower);			
+			idx++;
+		}else if(cur_str=="--tar-upper"){
+			idx++;
+			pop1_upper=stod(argv[idx]);
+			param_dict["Target group upper signature variant frequency boundary: "]=to_string(pop1_upper);			
+			idx++;
+		}else if(cur_str=="--ref-lower"){
+			idx++;
+			pop2_lower=stod(argv[idx]);
+			param_dict["Reference group lower non-signature variant frequency boundary: "]=to_string(pop2_lower);			
+			idx++;
+		}else if(cur_str=="--ref-upper"){
+			idx++;
+			pop2_upper=stod(argv[idx]);
+			param_dict["Reference group upper non-signature variant frequency boundary: "]=to_string(pop2_upper);			
+			idx++;
+		}else if(cur_str=="--group-num"){
+			idx++;
+			pop_num=stoi(argv[idx]);
+			param_dict["Number of groups included for shared pattern discovery: "]=to_string(pop_num);			
+			idx++;
+		}else if(cur_str=="--min-total-sample"){
+			idx++;
+			eff_sample=stoi(argv[idx]);
+			param_dict["Minimum number of total effective samples for locus inclusion: "]=to_string(min_sample_ref);			
+			idx++;
+		}else if(cur_str=="--min-sample"){
+			idx++;
+			min_sample=stoi(argv[idx]);
+			param_dict["Minimum number of samples allowed for population inclusion: "]=to_string(min_sample);			
+			idx++;
+		}else if(cur_str=="--min-tar"){
+			idx++;
+			min_sample_tar=stoi(argv[idx]);
+			param_dict["Minimum number of samples allowed for target population inclusion: "]=to_string(min_sample_tar);			
+			idx++;
+		}else if(cur_str=="--min-ref"){
+			idx++;
+			min_sample_ref=stoi(argv[idx]);
+			param_dict["Minimum number of samples allowed for reference population inclusion: "]=to_string(min_sample_ref);			
+			idx++;
+		}else if(cur_str=="--min-depth"){
+			idx++;
+			min_depth=stoi(argv[idx]);
+			param_dict["Minimum read depth for a variant to be included in the analysis: "]=to_string(min_depth);			
 			idx++;
 		}else if(cur_str=="--flag"){
 			idx++;
@@ -297,16 +347,6 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			idx++;
 			mean_llh=stod(argv[idx]);
 			param_dict["Minimum average likelihood for signature qualification: "]=argv[idx];
-			idx++;
-		}else if(cur_str=="--min-sample"){
-			idx++;
-			min_sample=stoi(argv[idx]);
-			param_dict["Minimum number of samples allowed for population inclusion: "]=to_string(min_sample);			
-			idx++;
-		}else if(cur_str=="--min-tar"){
-			idx++;
-			min_sample_tar=stoi(argv[idx]);
-			param_dict["Minimum number of samples allowed for target population inclusion: "]=to_string(min_sample_tar);			
 			idx++;
 		}else if(cur_str=="--min-rep-size"){
 			idx++;
@@ -334,21 +374,6 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			rep_num=stoi(argv[idx]);
 			param_dict["Cutoff point for number of the repetitive units in STR: "]=to_string(rep_num);			
 			idx++;
-		}else if(cur_str=="--effsample"){
-			idx++;
-			eff_sample=stoi(argv[idx]);
-			param_dict["Minimum number of total reference samples: "]=to_string(min_sample_ref);			
-			idx++;
-		}else if(cur_str=="--min-ref"){
-			idx++;
-			min_sample_ref=stoi(argv[idx]);
-			param_dict["Minimum number of samples allowed for reference population inclusion: "]=to_string(min_sample_ref);			
-			idx++;
-		}else if(cur_str=="--min-depth"){
-			idx++;
-			min_depth=stoi(argv[idx]);
-			param_dict["Minimum read depth for a variant to be included in the analysis: "]=to_string(min_depth);			
-			idx++;
 		}else if(cur_str=="--max-admix"){
 			idx++;
 			max_admix_pop=stoi(argv[idx]);
@@ -358,31 +383,6 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			idx++;
 			max_homo_pop=stoi(argv[idx]);
 			param_dict["Maximum number of homogeneous population allowed in the analysis: "]=to_string(max_homo_pop);			
-			idx++;
-		}else if(cur_str=="--tar-lower"){
-			idx++;
-			pop1_lower=stod(argv[idx]);
-			param_dict["Target group lower signature variant frequency boundary: "]=to_string(pop1_lower);			
-			idx++;
-		}else if(cur_str=="--tar-upper"){
-			idx++;
-			pop1_upper=stod(argv[idx]);
-			param_dict["Target group upper signature variant frequency boundary: "]=to_string(pop1_upper);			
-			idx++;
-		}else if(cur_str=="--ref-lower"){
-			idx++;
-			pop2_lower=stod(argv[idx]);
-			param_dict["Reference group lower non-signature variant frequency boundary: "]=to_string(pop2_lower);			
-			idx++;
-		}else if(cur_str=="--ref-upper"){
-			idx++;
-			pop2_upper=stod(argv[idx]);
-			param_dict["Reference group upper non-signature variant frequency boundary: "]=to_string(pop2_upper);			
-			idx++;
-		}else if(cur_str=="--group-num"){
-			idx++;
-			pop_num=stoi(argv[idx]);
-			param_dict["Number of groups included for shared pattern discovery: "]=to_string(pop_num);			
 			idx++;
 		}else if(cur_str=="--af"){
 			idx++;
