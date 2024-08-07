@@ -228,31 +228,6 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			depth_file=argv[idx];
 			file_dict["Sample depth file: "]=argv[idx];
 			idx++;
-		}else if(cur_str=="-o-likelihood"){
-			idx++;
-			likelihood_file=argv[idx];
-			file_dict["Output likelihood table to: "]=argv[idx];
-			idx++;
-		}else if(cur_str=="--flag"){
-			idx++;
-			ann_flag=argv[idx];
-			param_dict["Target annotation flag: "]=argv[idx];
-			idx++;
-		}else if(cur_str=="--seed"){
-			idx++;
-			seed=stoi(argv[idx]);
-			param_dict["Random seed used for dataset partition: "]=argv[idx];
-			idx++;
-		}else if(cur_str=="--sample-frac"){
-			idx++;
-			sample_frac=stod(argv[idx]);
-			param_dict["Sampling fraction: "]=argv[idx];
-			idx++;
-		}else if(cur_str=="--lh-thres"){
-			idx++;
-			mean_llh=stod(argv[idx]);
-			param_dict["Minimum average likelihood for signature qualification: "]=argv[idx];
-			idx++;
 		}else if(cur_str=="disc"){
 			exhaust_disc_mode=true;
 			analysis_dict["Analysis mode 1: "]="Exhaustive discovery mode";
@@ -297,6 +272,31 @@ void input_param::read_parameters(int argc, char const *argv[]){
 		}else if(cur_str=="mldisc"){
 			ml_mode=true;
 			analysis_dict["Analysis mode 11: "]="Selflearning likelihood based profiling";
+			idx++;
+		}else if(cur_str=="-o-likelihood"){
+			idx++;
+			likelihood_file=argv[idx];
+			file_dict["Output likelihood table to: "]=argv[idx];
+			idx++;
+		}else if(cur_str=="--flag"){
+			idx++;
+			ann_flag=argv[idx];
+			param_dict["Target annotation flag: "]=argv[idx];
+			idx++;
+		}else if(cur_str=="--seed"){
+			idx++;
+			seed=stoi(argv[idx]);
+			param_dict["Random seed used for dataset partition: "]=argv[idx];
+			idx++;
+		}else if(cur_str=="--sample-frac"){
+			idx++;
+			sample_frac=stod(argv[idx]);
+			param_dict["Sampling fraction: "]=argv[idx];
+			idx++;
+		}else if(cur_str=="--lh-thres"){
+			idx++;
+			mean_llh=stod(argv[idx]);
+			param_dict["Minimum average likelihood for signature qualification: "]=argv[idx];
 			idx++;
 		}else if(cur_str=="--min-sample"){
 			idx++;
