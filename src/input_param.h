@@ -333,15 +333,20 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			ann_flag=argv[idx];
 			param_dict["Target annotation flag: "]=argv[idx];
 			idx++;
-		}else if(cur_str=="--seed"){
+		}else if(cur_str=="--subsample-seed"){
 			idx++;
 			seed=stoi(argv[idx]);
 			param_dict["Random seed used for dataset partition: "]=argv[idx];
 			idx++;
-		}else if(cur_str=="--sample-frac"){
+		}else if(cur_str=="--subsample-frac"){
 			idx++;
 			sample_frac=stod(argv[idx]);
 			param_dict["Sampling fraction: "]=argv[idx];
+			idx++;
+		}else if(cur_str=="--subsample-run"){
+			idx++;
+			experiment_times=stoi(argv[idx]);
+			param_dict["Repetitions of subsampling runs: "]=argv[idx];
 			idx++;
 		}else if(cur_str=="--lh-thres"){
 			idx++;
