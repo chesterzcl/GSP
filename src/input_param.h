@@ -31,13 +31,13 @@ class input_param{
 			min_rep_size=1;
 			max_admix_pop=0;
 			max_homo_pop=1;
-			seed=0;
-			sample_frac=1.0;
+			seed=123;
+			sample_frac=0.8;
+			experiment_times=10;
 			af=0.0;
 			mean_llh=1.0;
 			pop_num=0;
 			rep_num=1;
-			experiment_times=10;
 			ann_flag="";
 			var_list_file="";
 			depth_file="";
