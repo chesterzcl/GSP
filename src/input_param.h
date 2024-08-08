@@ -250,7 +250,7 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			dist_mode=true;
 			analysis_dict["Analysis mode 4: "]="Output variant frequency for all labeling group";
 			idx++;
-		}else if(cur_str=="discfreq"){
+		}else if(cur_str=="SigFreq"){
 			unipop_mode=true;
 			analysis_dict["Analysis mode 5: "]="Unique pattern search for all group";
 			idx++;
@@ -270,11 +270,11 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			STR_mode=true;
 			analysis_dict["Analysis mode 9: "]="Discover Short Tandem Repeats(STR)";
 			idx++;
-		}else if(cur_str=="disclh"){
+		}else if(cur_str=="SigLh"){
 			lh_mode=true;
 			analysis_dict["Analysis mode 10: "]="Likelihood based profiling";
 			idx++;
-		}else if(cur_str=="discml"){
+		}else if(cur_str=="SigMl"){
 			ml_mode=true;
 			analysis_dict["Analysis mode 11: "]="Selflearning likelihood based profiling";
 			idx++;
