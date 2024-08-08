@@ -246,7 +246,7 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			exhaust_valid_mode=true;
 			analysis_dict["Analysis mode 3: "]="Exhaustive discovery-validation mode";
 			idx++;
-		}else if(cur_str=="dist"){
+		}else if(cur_str=="Dist"){
 			dist_mode=true;
 			analysis_dict["Analysis mode 4: "]="Output variant frequency for all labeling group";
 			idx++;
