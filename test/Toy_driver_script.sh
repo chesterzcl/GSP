@@ -9,7 +9,7 @@ upper=0.9
 lower=0.1
 
 ${tool_dir}/GSEXP \
-discfreq \
+SigFreq \
 -i ${dir}/Toy.vcf \
 -o ${dir}/Toy_fixed_ref.txt \
 -p ${dir}/Toy_pop_label.txt \
@@ -19,10 +19,10 @@ discfreq \
 --min-depth 10 \
 --min-sample 3 \
 --group-num 1 \
---tar-lower ${upper} --tar-upper 1.0 --ref-lower 0.0 --ref-upper ${lower} 
+--tar-lower ${upper} --ref-upper ${lower} 
 
 ${tool_dir}/GSEXP \
-disclh \
+SigLh \
 -i ${dir}/Toy.vcf \
 -o ${dir}/Toy_ml_ref.txt \
 -p ${dir}/Toy_pop_label.txt \

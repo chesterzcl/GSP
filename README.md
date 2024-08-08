@@ -63,24 +63,23 @@ For a more detailed guide to use the tool, please move to the wiki section of th
 For signature discovery of single population with fixed-frequency based algorithm:
 ```
 GSEXP \
-unique \
+SigFreq \
 -i Input.vcf \
 -o Output.txt \
 -p PopulationLabel.txt \
---popnum 1 \
---p1l 0.9 --p1u 1.0 --p2l 0.0 --p2u 0.1
+--group-num 1 \
+--tar-lower 0.9 --ref-upper 0.1
 ```
 
 For signature discovery of single population with machine-learning based adaptive algorithm:
 ```
 GSEXP \
-mldisc \
+SigMl \
 -i Input.vcf \
 -o Output.txt \
 -p PopulationLabel.txt \
---sample-frac 0.8 \
---popnum 1 \
---p1l 0.9 --p1u 1.0 --p2l 0.0 --p2u 0.1
+--group-num 1\
+--tar-lower 0.9 --ref-upper 0.1
 ```
 
 
