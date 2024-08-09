@@ -329,7 +329,7 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			min_depth=stoi(argv[idx]);
 			param_dict["Minimum read depth for a variant to be included in the analysis: "]=to_string(min_depth);			
 			idx++;
-		}else if(cur_str=="--flag"){
+		}else if(cur_str=="--ann-flag"){
 			idx++;
 			ann_flag=argv[idx];
 			param_dict["Target annotation flag: "]=argv[idx];
