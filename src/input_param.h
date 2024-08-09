@@ -26,13 +26,14 @@ class input_param{
 			pop2_upper=0.5;
 			pop2_lower=0;
 			min_sample=3;
+			eff_sample=-1;
 			min_sample_tar=-1;
 			min_sample_ref=-1;
 			min_rep_size=1;
 			max_admix_pop=0;
 			max_homo_pop=1;
 			seed=123;
-			sample_frac=0.8;
+			sample_frac=1;
 			experiment_times=10;
 			af=0.0;
 			mean_llh=1.0;
