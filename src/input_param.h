@@ -33,7 +33,7 @@ class input_param{
 			max_admix_pop=0;
 			max_homo_pop=1;
 			seed=0;
-			sample_frac=1。0;
+			sample_frac=1.0;
 			experiment_times=10;
 			af=0.0;
 			mean_llh=1.0;
