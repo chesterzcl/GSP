@@ -22,8 +22,8 @@ class input_param{
 		void reset_freq_param(){
 			min_depth=0;
 			pop1_upper=1;
-			pop1_lower=0;
-			pop2_upper=1;
+			pop1_lower=0.5;
+			pop2_upper=0.5;
 			pop2_lower=0;
 			min_sample=3;
 			min_sample_tar=-1;
