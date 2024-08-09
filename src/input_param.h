@@ -22,8 +22,8 @@ class input_param{
 		void reset_freq_param(){
 			min_depth=0;
 			pop1_upper=1;
-			pop1_lower=0.5;
-			pop2_upper=0.5;
+			pop1_lower=0;
+			pop2_upper=1;
 			pop2_lower=0;
 			min_sample=3;
 			min_sample_tar=-1;
@@ -31,7 +31,7 @@ class input_param{
 			min_rep_size=1;
 			max_admix_pop=0;
 			max_homo_pop=1;
-			seed=0;
+			seed=123;
 			sample_frac=0.8;
 			experiment_times=10;
 			af=0.0;
