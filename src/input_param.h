@@ -22,8 +22,8 @@ class input_param{
 		void reset_freq_param(){
 			min_depth=0;
 			pop1_upper=1;
-			pop1_lower=0;
-			pop2_upper=1;
+			pop1_lower=0.5;
+			pop2_upper=0.5;
 			pop2_lower=0;
 			min_sample=3;
 			min_sample_tar=-1;
@@ -306,7 +306,7 @@ void input_param::read_parameters(int argc, char const *argv[]){
 		}else if(cur_str=="--min-total-sample"){
 			idx++;
 			eff_sample=stoi(argv[idx]);
-			param_dict["Minimum number of total effective samples for locus inclusion: "]=to_string(min_sample_ref);			
+			param_dict["Minimum number of total effective samples for locus inclusion: "]=to_string(eff_sample);			
 			idx++;
 		}else if(cur_str=="--min-sample"){
 			idx++;
