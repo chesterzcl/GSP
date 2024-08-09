@@ -31,7 +31,7 @@ class input_param{
 			min_rep_size=1;
 			max_admix_pop=0;
 			max_homo_pop=1;
-			seed=123;
+			seed=0;
 			sample_frac=0.8;
 			experiment_times=10;
 			af=0.0;
