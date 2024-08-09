@@ -33,6 +33,7 @@ SigLh \
 --min-depth 10 \
 --min-sample 3 \
 --group-num 1 \
+--tar-lower ${upper} --ref-upper ${lower} 
 
 ${tool_dir}/Postprocessing ${dir} Toy_fixed_ref
 ${tool_dir}/Postprocessing ${dir} Toy_ml_ref
