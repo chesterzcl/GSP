@@ -34,6 +34,34 @@ class thread_analysis_module{
 			}
 		}
 
+		string examine_var_type(string& ref_str,string& alt_str){
+			string var_type="OTHER";
+			vector<string> alt_str_vec=read_char_delim_str(alt_str,',');
+			if(alt_str_vec.size()==1){
+				//bi-allelic
+				if(ref_str.length()==1&&alt_str.length()==1){
+					//bi-allelic SNP
+					var_type="biSNP";
+				}else{
+					var_type="biINDEL";
+				}
+			}else if(alt_str_vec.size()>1){
+				//multi-allelic
+				if(ref_str.length()>1){
+					var_type="multiINDEL";
+				}else{
+					var_type="multiSNP";
+					for (int i = 0; i !=alt_str_vec.size(); ++i)
+					{
+						if(alt_str_vec[i].length()>1){
+							var_type="multiINDEL";
+						}
+					}
+				}
+			}
+			return var_type;
+		}
+
 		void load_io_address(string str1, string str2){
 			input_ad=str1;
 			output_ad=str2;
