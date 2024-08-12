@@ -15,7 +15,7 @@ class input_param{
 	public:
 		double pop1_upper,pop1_lower,pop2_upper,pop2_lower,af,sample_frac,mean_llh;
 		int eff_sample,min_sample,min_sample_tar,min_sample_ref,thread_num,analysis_mode,pop_num,min_depth,max_admix_pop,max_homo_pop,seed,min_rep_size,rep_num,experiment_times;
-		string ann_flag,ann_file,var_list_file,pop_file,vcf_file,output_file,depth_file,likelihood_file;
+		string var_type,ann_flag,ann_file,var_list_file,pop_file,vcf_file,output_file,depth_file,likelihood_file;
 		set<string> pop1,pop2,pop_all;
 		bool verbose,ml_mode,lh_mode,StrPrint,isGS,isEXP,no_splicing,kmeans,flip,dist_mode,exhaust_disc_mode,exhaust_valid_mode,output_per_sample_gt,bipop_mode,unipop_mode,gene_mode,unique_valid_mode,combine_all,STR_mode,INDEL_mode;
 
@@ -42,6 +42,7 @@ class input_param{
 			ann_flag="";
 			var_list_file="";
 			depth_file="";
+			var_type="SNP";
 			flip=false;
 			verbose=false;
 			no_splicing=false;
@@ -333,6 +334,11 @@ void input_param::read_parameters(int argc, char const *argv[]){
 			idx++;
 			ann_flag=argv[idx];
 			param_dict["Target annotation flag: "]=argv[idx];
+			idx++;
+		}else if(cur_str=="--var-type"){
+			idx++;
+			var_type=argv[idx];
+			param_dict["Target variant type for analyses: "]=argv[idx];
 			idx++;
 		}else if(cur_str=="--subsample-seed"){
 			idx++;
