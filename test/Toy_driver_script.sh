@@ -15,6 +15,7 @@ SigFreq \
 -p ${dir}/Toy_pop_label.txt \
 -t 2 \
 --flip \
+--var-type SNP \
 --min-total-sample ${eff_sample} \
 --min-depth 10 \
 --min-sample 3 \
@@ -28,6 +29,7 @@ SigLh \
 -p ${dir}/Toy_pop_label.txt \
 -t 2 \
 --flip \
+--var-type SNP \
 --lh-thres -0.0031 \
 --min-total-sample ${eff_sample} \
 --min-depth 10 \
