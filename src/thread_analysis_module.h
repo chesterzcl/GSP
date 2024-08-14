@@ -1213,6 +1213,7 @@ class thread_analysis_module{
 			int line_mark;
 			vector<string> line_vec,pop_rst_vec;
 			pair<string,int > q_pair;
+			string var_ctgry;
 			pair<vector<string>,vector<string> > str_vec_pair;
 			while(true)
 			{
@@ -1238,6 +1239,13 @@ class thread_analysis_module{
 					{
 						goto labelA;
 					}
+					
+					var_ctgry=examine_var_type(line_vec[3],line_vec[4]);
+					if (var_ctgry!=param.var_type)
+					{
+						goto labelA;
+					}
+					
 					if(param.analysis_mode==5)
 					{
 						if(!param.no_splicing)
@@ -1912,7 +1920,8 @@ class thread_analysis_module{
 						}
 					}
 					g_ready=false;
-					ul.unlock();											
+					ul.unlock();
+					labelA:;										
 				}				
 			}
 			completed=true;
