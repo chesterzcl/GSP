@@ -1213,8 +1213,8 @@ class thread_analysis_module{
 			int line_mark;
 			vector<string> line_vec,pop_rst_vec;
 			pair<string,int > q_pair;
-			string var_ctgry;
 			pair<vector<string>,vector<string> > str_vec_pair;
+			string var_ctgry;
 			while(true)
 			{
 				if(completed)
@@ -1241,44 +1241,43 @@ class thread_analysis_module{
 					}
 					
 					var_ctgry=examine_var_type(line_vec[3],line_vec[4]);
-					if (var_ctgry!=param.var_type)
-					{
-						goto labelA;
-					}
-					
-					if(param.analysis_mode==5)
-					{
-						if(!param.no_splicing)
+					if (var_ctgry==param.var_type){
+						if(param.analysis_mode==5)
 						{
-							str_vec_pair=discover_unique_variant(pop,param,var,ann,line_vec,pop_vec,ind_vec);
-						}else{
-							if (ann.gene_transcript_dict[read_char_delim_str(line_vec[7],'|')[3]].size()==1)
+							if(!param.no_splicing)
 							{
 								str_vec_pair=discover_unique_variant(pop,param,var,ann,line_vec,pop_vec,ind_vec);
-							}
-						}						
+							}else{
+								if (ann.gene_transcript_dict[read_char_delim_str(line_vec[7],'|')[3]].size()==1)
+								{
+									str_vec_pair=discover_unique_variant(pop,param,var,ann,line_vec,pop_vec,ind_vec);
+								}
+							}						
+						}
+						freq_str=str_vec_pair.first[0];
+						
+						//output data
+						ul.lock();
+						if(ind_vec[3]==0)
+						{
+							eff_var_num++;
+						}
+						//output likelihood
+						if(param.likelihood_file!=""&&str_vec_pair.second.size()!=0)
+						{
+							output2<<str_vec_pair.second[0]<<endl;
+						}
+						//output freq
+						if(ind_vec[2]==0&&ind_vec[4]==0)
+						{
+							output<<line_mark<<'\t'<<freq_str<<endl;
+							var_num++;
+						}
+						g_ready=false;
+						ul.unlock();
 					}
-					freq_str=str_vec_pair.first[0];
 					
-					//output data
-					ul.lock();
-					if(ind_vec[3]==0)
-					{
-						eff_var_num++;
-					}
-					//output likelihood
-					if(param.likelihood_file!=""&&str_vec_pair.second.size()!=0)
-					{
-						output2<<str_vec_pair.second[0]<<endl;
-					}
-					//output freq
-					if(ind_vec[2]==0&&ind_vec[4]==0)
-					{
-						output<<line_mark<<'\t'<<freq_str<<endl;
-						var_num++;
-					}
-					g_ready=false;
-					ul.unlock();
+
 					labelA:;
 				}
 			}
@@ -1849,79 +1848,84 @@ class thread_analysis_module{
 					int line_mark=q_pair.second;
 					bool llisvalid=false;
 					vector<string> line_vec=read_char_delim_str(ip_str,'\t');
-					pair<vector<pair<double,string> >,string> temp_pair=classification_boundary_learner(pop,param,var,ann,line_vec,pop_vec,llisvalid);
-					max_ll_vec=temp_pair.first;
-					signature_pop=temp_pair.second;
-					//Update diagnostics dict
-					ul.lock();	
-					//Traversing and update logllh_dict
-					//Retrieve labels here
-					if(llisvalid)
+
+					string var_ctgry=examine_var_type(line_vec[3],line_vec[4]);
+					if (var_ctgry==param.var_type)
 					{
-						//Traverse llthres vec
-						//{TP,FP,TN,FN}
-						for (map<double,vector<vector<int> > >::iterator i = llthres_dict.begin(); i !=llthres_dict.end(); ++i)
+						pair<vector<pair<double,string> >,string> temp_pair=classification_boundary_learner(pop,param,var,ann,line_vec,pop_vec,llisvalid);
+						max_ll_vec=temp_pair.first;
+						signature_pop=temp_pair.second;
+						//Update diagnostics dict
+						ul.lock();	
+						//Traversing and update logllh_dict
+						//Retrieve labels here
+						if(llisvalid)
 						{
-							double thres=i->first;
-						
-							//Traverse different subsample runs
-							for (int j = 0; j != i->second.size(); ++j)
+							//Traverse llthres vec
+							//{TP,FP,TN,FN}
+							for (map<double,vector<vector<int> > >::iterator i = llthres_dict.begin(); i !=llthres_dict.end(); ++i)
 							{
-								// if(j==0){
-								// 	cout<<thres<<'\t'<<max_ll_vec[j].first<<'\t'<<max_ll_vec[j].second<<'\t'<<signature_pop<<endl;
-								// }
-								
-								if(max_ll_vec[j].first==9){
-									//Skip
-								}else{
-									if(max_ll_vec[j].first>thres)
-									{
-										//signal fired
-										if(max_ll_vec[j].second==signature_pop)
-										{
-											//TP
-											i->second[j][0]++;
-										}else{
-											//FP
-											i->second[j][1]++;
-										}
+								double thres=i->first;
+							
+								//Traverse different subsample runs
+								for (int j = 0; j != i->second.size(); ++j)
+								{
+									// if(j==0){
+									// 	cout<<thres<<'\t'<<max_ll_vec[j].first<<'\t'<<max_ll_vec[j].second<<'\t'<<signature_pop<<endl;
+									// }
+									
+									if(max_ll_vec[j].first==9){
+										//Skip
 									}else{
-										//signal not fired
-										if(max_ll_vec[j].second=="NA"){
-											//Skip
-										}else{
-											if(signature_pop!="NA")
+										if(max_ll_vec[j].first>thres)
+										{
+											//signal fired
+											if(max_ll_vec[j].second==signature_pop)
 											{
-												//FN
-												i->second[j][3]++;
+												//TP
+												i->second[j][0]++;
 											}else{
-												//TN
-												// if(j==1)
-												// {
-													
-												// 	if(max_ll_vec[j].first<-10){
-												// 		cout<<thres<<'\t'<<max_ll_vec[j].first<<'\t'<<max_ll_vec[j].second<<'\t'<<signature_pop<<endl;
-												// 	}
-												// }
-												i->second[j][2]++;
+												//FP
+												i->second[j][1]++;
+											}
+										}else{
+											//signal not fired
+											if(max_ll_vec[j].second=="NA"){
+												//Skip
+											}else{
+												if(signature_pop!="NA")
+												{
+													//FN
+													i->second[j][3]++;
+												}else{
+													//TN
+													// if(j==1)
+													// {
+														
+													// 	if(max_ll_vec[j].first<-10){
+													// 		cout<<thres<<'\t'<<max_ll_vec[j].first<<'\t'<<max_ll_vec[j].second<<'\t'<<signature_pop<<endl;
+													// 	}
+													// }
+													i->second[j][2]++;
+												}
 											}
 										}
 									}
+
+									// if(j==0){
+									// 	cout<<'\t'<<i->second[j][0];
+									// 	cout<<'\t'<<i->second[j][1]<<'\t';
+									// 	cout<<'\t'<<i->second[j][2]<<'\t';
+									// 	cout<<'\t'<<i->second[j][3]<<endl;									
+									// }
+
 								}
-
-								// if(j==0){
-								// 	cout<<'\t'<<i->second[j][0];
-								// 	cout<<'\t'<<i->second[j][1]<<'\t';
-								// 	cout<<'\t'<<i->second[j][2]<<'\t';
-								// 	cout<<'\t'<<i->second[j][3]<<endl;									
-								// }
-
 							}
 						}
+						g_ready=false;
+						ul.unlock();						
 					}
-					g_ready=false;
-					ul.unlock();
-					labelA:;										
+													
 				}				
 			}
 			completed=true;
@@ -2176,25 +2180,28 @@ class thread_analysis_module{
 					string ip_str=q_pair.first;
 					int line_mark=q_pair.second;
 					vector<string> line_vec=read_char_delim_str(ip_str,'\t');
-					bool is_signature=false;
-					lr_freq_pair=signature_discovery_ml(pop,param,var,ann,line_vec,pop_vec,is_signature);
-					string lr_str=lr_freq_pair.first;
-					string freq_str=lr_freq_pair.second;
-					//output data
-					ul.lock();	
-					if(is_signature)
-					{
-						//Output frequency
-						if(freq_str!="")
+					string var_ctgry=examine_var_type(line_vec[3],line_vec[4]);
+					if(var_ctgry==param.var_type){
+						bool is_signature=false;
+						lr_freq_pair=signature_discovery_ml(pop,param,var,ann,line_vec,pop_vec,is_signature);
+						string lr_str=lr_freq_pair.first;
+						string freq_str=lr_freq_pair.second;
+						//output data
+						ul.lock();	
+						if(is_signature)
 						{
-							output<<line_mark<<'\t'<<freq_str<<endl;
-							var_num++;
+							//Output frequency
+							if(freq_str!="")
+							{
+								output<<line_mark<<'\t'<<freq_str<<endl;
+								var_num++;
+							}
+							//Output likelihood
+							output2<<lr_str<<endl;
 						}
-						//Output likelihood
-						output2<<lr_str<<endl;
-					}
-					g_ready=false;
-					ul.unlock();									
+						g_ready=false;
+						ul.unlock();		
+					}							
 				}				
 			}
 			completed=true;
