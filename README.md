@@ -69,7 +69,8 @@ SigFreq \
 -p PopulationLabel.txt \
 --var-type biSNP \
 --group-num 1 \
---tar-lower 0.9 --ref-upper 0.1
+--tar-lower 0.9 \
+--ref-upper 0.1
 ```
 
 For signature discovery of single population with machine-learning based adaptive algorithm:
@@ -81,7 +82,9 @@ SigMl \
 -p PopulationLabel.txt \
 --var-type biSNP \
 --group-num 1 \
---tar-lower 0.9 --ref-upper 0.1
+--subsample-frac 0.8 \
+--tar-lower 0.9 \
+--ref-upper 0.1
 ```
 
 
