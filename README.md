@@ -67,6 +67,7 @@ SigFreq \
 -i Input.vcf \
 -o Output.txt \
 -p PopulationLabel.txt \
+--var-type biSNP \
 --group-num 1 \
 --tar-lower 0.9 --ref-upper 0.1
 ```
@@ -78,7 +79,8 @@ SigMl \
 -i Input.vcf \
 -o Output.txt \
 -p PopulationLabel.txt \
---group-num 1\
+--var-type biSNP \
+--group-num 1 \
 --tar-lower 0.9 --ref-upper 0.1
 ```
 

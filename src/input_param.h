@@ -42,7 +42,7 @@ class input_param{
 			ann_flag="";
 			var_list_file="";
 			depth_file="";
-			var_type="SNP";
+			var_type="biSNP";
 			flip=false;
 			verbose=false;
 			no_splicing=false;
