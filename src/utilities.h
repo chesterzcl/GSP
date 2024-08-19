@@ -51,7 +51,7 @@ string generate_line_header(vector<string> line_vec){
 	if(ann_vec.size()>1){
 		lheader_str=line_vec[0]+'\t'+line_vec[1]+'\t'+ann_vec[3]+'\t'+ann_vec[1]+'\t'+ann_vec[13]+'\t'+ann_vec[10];
 	}else{
-		lheader_str=line_vec[0]+'\t'+line_vec[1];
+		lheader_str=line_vec[0]+'\t'+line_vec[1]+'\t'+'\t'+'\t'+'\t';
 	}
 	return lheader_str;
 }
