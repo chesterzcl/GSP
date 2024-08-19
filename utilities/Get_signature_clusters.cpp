@@ -79,6 +79,12 @@ int main(int argc, char const *argv[]){
 	string param_min_sig_num=argv[3];
 	string param_max_dist=argv[4];
 	int min_eff_sample=stoi(param_ref_num);
+	vector<string> dir_vec=read_char_delim_str(ip_file,'/');
+	string dir="";
+	for (int i = 0; i !=dir_vec.size()-1; ++i)
+	{
+		dir+=dir_vec[i]+'/';
+	}
 	ifstream input;
 	ofstream output;
 	input.open(ip_file);
@@ -139,7 +145,7 @@ int main(int argc, char const *argv[]){
 					string seg_pos_start=find_str_after_nth_char(segment_vec[0],1,'\t');
 					string seg_pos_end=find_str_after_nth_char(segment_vec[segment_vec.size()-1],1,'\t');
 
-					output.open(tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".txt");
+					output.open(dir+tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".txt");
 					for (int k = 0; k != segment_vec.size(); ++k)
 					{
 						output<<segment_vec[k]<<endl;
@@ -161,7 +167,7 @@ int main(int argc, char const *argv[]){
 			string seg_pos_start=find_str_after_nth_char(segment_vec[0],1,'\t');
 			string seg_pos_end=find_str_after_nth_char(segment_vec[segment_vec.size()-1],1,'\t');
 
-			output.open(tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".txt");
+			output.open(dir+tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".txt");
 			for (int k = 0; k != segment_vec.size(); ++k)
 			{
 				output<<segment_vec[k]<<endl;
