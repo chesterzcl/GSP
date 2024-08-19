@@ -12,6 +12,7 @@ int main(int argc, char const *argv[]){
 	cout<<"Engine initiated."<<endl;
 	if(argc<2){
 		cout<<"Insufficient number of arguments provided."<<endl;
+		cout<<"Engine shut down."<<endl;
 		return 0;
 	}
 	input_param param;
