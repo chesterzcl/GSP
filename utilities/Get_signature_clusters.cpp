@@ -74,15 +74,14 @@ vector<string> combine_two_queries(vector<string> v1,vector<string> v2){
 
 int main(int argc, char const *argv[]){
 	//file param1 param2
-	string dir=argv[1];
-	string ip_file=argv[2];
-	string param_ref_num=argv[3];
-	string param_min_sig_num=argv[4];
-	string param_max_dist=argv[5];
+	string ip_file=argv[1];
+	string param_ref_num=argv[2];
+	string param_min_sig_num=argv[3];
+	string param_max_dist=argv[4];
 	int min_eff_sample=stoi(param_ref_num);
 	ifstream input;
 	ofstream output;
-	input.open(dir+"/"+ip_file);
+	input.open(ip_file);
 	//container
 	vector<string> line_vec;
 	string line;
@@ -140,7 +139,7 @@ int main(int argc, char const *argv[]){
 					string seg_pos_start=find_str_after_nth_char(segment_vec[0],1,'\t');
 					string seg_pos_end=find_str_after_nth_char(segment_vec[segment_vec.size()-1],1,'\t');
 
-					output.open(dir+"/"+tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".txt");
+					output.open(tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".txt");
 					for (int k = 0; k != segment_vec.size(); ++k)
 					{
 						output<<segment_vec[k]<<endl;
@@ -162,7 +161,7 @@ int main(int argc, char const *argv[]){
 			string seg_pos_start=find_str_after_nth_char(segment_vec[0],1,'\t');
 			string seg_pos_end=find_str_after_nth_char(segment_vec[segment_vec.size()-1],1,'\t');
 
-			output.open(dir+"/"+tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".txt");
+			output.open(tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".txt");
 			for (int k = 0; k != segment_vec.size(); ++k)
 			{
 				output<<segment_vec[k]<<endl;
