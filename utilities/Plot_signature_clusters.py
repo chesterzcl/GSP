@@ -5,15 +5,23 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-def heatmap(dir_name,file_name, ax=None,cbar_kw=None, cbarlabel="", **kwargs):
+def heatmap(input, ax=None,cbar_kw=None, cbarlabel="", **kwargs):
 	#Parse data
-	dp=pd.read_table(dir_name+"/"+file_name,header=None)
+	dp=pd.read_table(input,header=None)
 	mat=dp.to_numpy()
 	nrow,ncol=mat.shape
 	chr=mat[0,0]
 	group_vec=mat[0,6:ncol]
 	loci_vec=mat[1:nrow,1]
 	freq_mat=mat[1:nrow,6:ncol].T
+
+	# Read dir name
+	dir=""
+	for i in range(0,len(input.split('/'))-1):
+		dir+=input.split('/')[i]+"/"
+		
+	# Parse file name
+	file_name=input.split('/')[-1]
 	tar_group=file_name.split('_')[0]
 	seg_start=file_name.split('_')[-2]
 	seg_end=file_name.split('_')[-1].split('.')[0]
@@ -70,14 +78,13 @@ def heatmap(dir_name,file_name, ax=None,cbar_kw=None, cbarlabel="", **kwargs):
 	ax.set_xticks(np.arange(len(loci_vec)+1)-.5, minor=True)
 	ax.set_yticks(np.arange(len(group_vec)+1)-.5, minor=True)
 
-	op_fig_name=dir+"/"+tar_group+"_"+chr+"_"+seg_start+"_"+seg_end+".png"
+	op_fig_name=dir+tar_group+"_"+chr+"_"+seg_start+"_"+seg_end+".png"
 
 	return im,cbar,op_fig_name
 
-dir=sys.argv[1]
-file=sys.argv[2]
+file=sys.argv[1]
 fig,ax=plt.subplots()
-im,cbar,op_fig=heatmap(dir,file,ax=ax,cmap="YlGn",cbarlabel="Signature carrying individual frequency")
+im,cbar,op_fig=heatmap(file,ax=ax,cmap="YlGn",cbarlabel="Signature carrying individual frequency")
 fig.tight_layout()
 plt.savefig(op_fig,format="png",dpi=800)
 
