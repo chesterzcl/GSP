@@ -95,6 +95,7 @@ int main(int argc, char const *argv[]){
 	map<string,int> group_idx_dict;
 	map<int,string> idx_group_dict;
 	int cter=0;
+	string header_line;
 	//Sort by sample group
 	while(getline(input,line)){
 		if(line[0]!='#'){
@@ -115,6 +116,7 @@ int main(int argc, char const *argv[]){
 				group_sig_dict[tar_group].push_back(line);
 			}
 		}else{
+			header_line=line;
 			line_vec=read_char_delim_str(line,'\t');
 			for (int i = 6; i < line_vec.size(); ++i)
 			{
@@ -146,6 +148,7 @@ int main(int argc, char const *argv[]){
 					string seg_pos_end=find_str_after_nth_char(segment_vec[segment_vec.size()-1],1,'\t');
 
 					output.open(dir+tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".txt");
+					output<<header_line<<endl;
 					for (int k = 0; k != segment_vec.size(); ++k)
 					{
 						output<<segment_vec[k]<<endl;
@@ -168,6 +171,7 @@ int main(int argc, char const *argv[]){
 			string seg_pos_end=find_str_after_nth_char(segment_vec[segment_vec.size()-1],1,'\t');
 
 			output.open(dir+tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".txt");
+			output<<header_line<<endl;
 			for (int k = 0; k != segment_vec.size(); ++k)
 			{
 				output<<segment_vec[k]<<endl;
