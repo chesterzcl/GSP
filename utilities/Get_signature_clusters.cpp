@@ -147,7 +147,7 @@ int main(int argc, char const *argv[]){
 					string seg_pos_start=find_str_after_nth_char(segment_vec[0],1,'\t');
 					string seg_pos_end=find_str_after_nth_char(segment_vec[segment_vec.size()-1],1,'\t');
 
-					output.open(dir+tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".txt");
+					output.open(dir+tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".seg.txt");
 					output<<header_line<<endl;
 					for (int k = 0; k != segment_vec.size(); ++k)
 					{
@@ -169,7 +169,7 @@ int main(int argc, char const *argv[]){
 			string seg_pos_start=find_str_after_nth_char(segment_vec[0],1,'\t');
 			string seg_pos_end=find_str_after_nth_char(segment_vec[segment_vec.size()-1],1,'\t');
 
-			output.open(dir+tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".txt");
+			output.open(dir+tar_group+"_"+seg_chr+"_"+seg_pos_start+"_"+seg_pos_end+".seg.txt");
 			output<<header_line<<endl;
 			for (int k = 0; k != segment_vec.size(); ++k)
 			{
