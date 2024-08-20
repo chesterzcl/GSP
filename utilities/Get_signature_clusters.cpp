@@ -154,10 +154,9 @@ int main(int argc, char const *argv[]){
 						output<<segment_vec[k]<<endl;
 					}
 					output.close();
-
-					//reset
-					segment_vec.clear();
 				}
+				//reset
+				segment_vec.clear();
 			}
 
 			segment_vec.push_back(i->second[j]);
