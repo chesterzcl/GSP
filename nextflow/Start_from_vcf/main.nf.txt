@@ -1,0 +1,57 @@
+
+//File directories
+params.data_dir="/home/zl436/palmer_scratch/simu/tool/23K9"
+params.group_label_file="${params.data_dir}/hoh_test_breed.txt"
+params.vcfs="${params.data_dir}/vcf/*.vcf"
+
+//Analysis parameters
+params.segment_min_qualifying_sample=15
+params.segment_min_signature_num=15
+params.segment_max_distance=10000
+
+process signature_profiling{
+        container 'chesterli214/gsexp_amd64_v0.5'
+
+        cpus 4
+
+        input:
+        path vcf_file
+        path group_label
+
+        output:
+        path "*seg.txt"
+
+        script:
+        """
+        GSEXP SigFreq -t ${task.cpus} -i ${vcf_file} -o ${vcf_file}_signature.txt -p ${group_label} --var-type biSNP --group-num 1 --tar-lower 0.9 --ref-upper 0.1 --min-sample 1
+        Get_signature_clusters ${vcf_file}_signature.txt ${params.segment_min_qualifying_sample} ${params.segment_min_signature_num} ${params.segment_max_distance}
+        """
+}
+
+process signature_segment_visualization{
+        container 'chesterli214/gsexp_amd64_v0.5'
+
+        input:
+        path segment_file
+
+        output:
+        path "*.png"
+
+        script:
+        """
+        Plot_signature_clusters.py ${segment_file}
+        """
+}
+
+workflow{
+        //***************************************************************
+        //Genomic signature profiling
+        vcf_ch=Channel.fromPath(params.vcfs,checkIfExists: true)
+        vcf_ch.view()
+        signature_profiling(vcf_ch,params.group_label_file)
+        //signature_profiling.out.view()
+
+        //Plot signature clusters
+        signature_segment_visualization(signature_profiling.out.flatten())
+        signature_segment_visualization.out.view()
+}
