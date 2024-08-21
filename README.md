@@ -92,13 +92,11 @@ For the secondary analysis of signature segments based on individual signature o
 An example usage of the binary as following will filter out individual signatures with fewer than 300 effective samples, and output signature segments containing at least 30 independent signatures. The maximum allowed distance between adjacent signatures is set to be 1000bp. Each signature segment will have a independent output file.
 ```
 ./Get_signature_clusters signature.txt 300 30 1000
-
 ```
 
 To visualize the signature variant distribution across sample groups over specific siganture segments, use the "Plot_signature_cluster.py" script under "/GSEXP/utilities/py_scripts/". Note that numpy,pandas and matplotlib packages are required to execute this script.
 ```
 python3 Plot_signature_clusters.py Signature_segment.txt
-
 ```
 
 
