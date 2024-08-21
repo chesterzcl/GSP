@@ -87,7 +87,7 @@ SigMl \
 --ref-upper 0.1
 ```
 
-For the secondary analysis of signature segments based on individual signature output of GSEXP, use the *Get_signature_cluster binary* built along with the tool. 
+For the secondary analysis of signature segments based on individual signature output of *GSEXP*, use the *Get_signature_cluster binary* built along with the tool. 
 
 An example usage of the binary as following will filter out individual signatures with fewer than 300 effective samples, and output signature segments containing at least 30 independent signatures. The maximum allowed distance between adjacent signatures is set to be 1000bp. Each signature segment will have a independent output file.
 ```
