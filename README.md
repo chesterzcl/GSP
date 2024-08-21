@@ -99,7 +99,7 @@ To visualize the signature variant distribution across sample groups over specif
 python3 Plot_signature_clusters.py Signature_segment.txt
 ```
 
-A sample plot of this 
+A sample plot made by this script over a signature segment discovered from a canine WGS dataset described in Li Z et al.(BMC Genomics 2023) is shown below. 
 
 ![KEESHOND_NC_051822 1_15139406_15247997](https://github.com/user-attachments/assets/916cfd80-487e-4b03-adec-c084abdf8420)
 
