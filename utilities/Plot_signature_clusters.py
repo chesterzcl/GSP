@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import sys
 import numpy as np
 import pandas as pd
@@ -19,7 +21,7 @@ def heatmap(input, ax=None,cbar_kw=None, cbarlabel="", **kwargs):
 	dir=""
 	for i in range(0,len(input.split('/'))-1):
 		dir+=input.split('/')[i]+"/"
-		
+
 	# Parse file name
 	file_name=input.split('/')[-1]
 	tar_group=file_name.split('_')[0]
