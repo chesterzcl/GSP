@@ -58,7 +58,7 @@ In the output, the adaptive discovery module and fixed-frequency based module sh
 
 For a more detailed guide to use the tool, please move to the wiki section of this repo.
 
-## Quick start
+## Quick Start
 
 For signature discovery of single population with fixed-frequency based algorithm:
 ```
@@ -98,6 +98,8 @@ To visualize the signature variant distribution across sample groups over specif
 ```
 python3 Plot_signature_clusters.py Signature_segment.txt
 ```
+
+A sample plot of this 
 
 
 
