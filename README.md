@@ -101,5 +101,6 @@ python3 Plot_signature_clusters.py Signature_segment.txt
 
 A sample plot of this 
 
-![KEESHOND_NC_051822 1_15139406_15247997](https://github.com/user-attachments/assets/916cfd80-487e-4b03-adec-c084abdf8420)
+![KEESHOND_NC_051822 1_15139406_15247997](https://github.com/user-attachments/assets/916cfd80-487e-4b03-adec-c084abdf8420 =250x250)
+
 
