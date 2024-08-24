@@ -5,6 +5,8 @@ We provide a command-line tool used for fast and efficient whole-genome scale ge
 1. A standard Variant Calling Format(VCF) file containing genomic information of the entire sample collection.
 2. A sample group label file indicating the membership of each individual sample.
 
+We also provide a nextflow pipeline implementation of this tool for users to carry out analysis from raw sequencing data (FASTQ). Please move to Wiki page for detailed guide on using the pipeline.
+
 Besides, three main customizable modules allow this tool to fulfill a variety of reserach needs. They are:
 1. Loci annotation flags (position range, variant type, variant size, .etc.).
 2. Variant quality metrics (minimum tolerable sequencing depth).
@@ -18,9 +20,9 @@ Li, Z., Wang, Z., Chen, Z. et al. Systematically identifying genetic signatures 
 ## Key Features
 1. Basic variant filtering and extraction based on annotation flags.
 2. Can calcualte and display variant frequency by user-defined sample groups.
-3. Profiling exclusively owned genetic signatures of a single sample group or shared genetic signatures among multiple sample groups.
+3. Profiling exclusively owned genetic signatures of a single sample group or exclusively shared genetic signatures among multiple sample groups.
 4. Identification of bi-allelic genetic signatures satisfying user-defined population frequency constraints.
-5. Identification of Short Tandem Repeats(STR) from multi-allelic loci. Can profiling sample groups for STR signatures with extreme expansion or contraction status.
+5. Identification of Short Tandem Repeats(STR) from multi-allelic loci. Can be used to discover STR signatures with extreme expansion or contraction number.
 6. Independent discovery and validation of genetic sigantures in different variant datasets. 
 
 ## Installation
@@ -104,8 +106,6 @@ A sample plot made by this script over a signature segment discovered from a can
 
 ![KEESHOND_NC_051822 1_15139406_15247997](https://github.com/user-attachments/assets/916cfd80-487e-4b03-adec-c084abdf8420)
 
-
-We also provide a nextflow pipeline implementation of this tool starting from different stages of WGS data. Please move to WiKi page for detailed guide on using the pipeline.
 
 
 
