@@ -1,12 +1,12 @@
 cmake_minimum_required (VERSION 3.10)
 
-project(GSEXP)
+project(GSP)
 
-add_executable(GSEXP src/utilities.h src/ann_data.h src/input_param.h src/var_list.h src/pop_data.h src/main_analysis_module.h src/thread_analysis_module.h src/PFA-0.99.cpp)
+add_executable(GSP src/utilities.h src/ann_data.h src/input_param.h src/var_list.h src/pop_data.h src/main_analysis_module.h src/thread_analysis_module.h src/GSP.cpp)
 
-target_compile_features(GSEXP PUBLIC cxx_std_17)
+target_compile_features(GSP PUBLIC cxx_std_17)
 
-set_target_properties(GSEXP PROPERTIES CXX_EXTENSIONS OFF)
+set_target_properties(GSP PROPERTIES CXX_EXTENSIONS OFF)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -16,7 +16,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 find_package(Threads REQUIRED)
 
-target_link_libraries(GSEXP PRIVATE Threads::Threads)
+target_link_libraries(GSP PRIVATE Threads::Threads)
 
 project(test_program)
 

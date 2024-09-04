@@ -8,7 +8,7 @@ eff_sample=300
 upper=0.9
 lower=0.1
 
-${tool_dir}/GSEXP \
+${tool_dir}/GSP \
 SigFreq \
 -i ${dir}/Toy.vcf \
 -o ${dir}/Toy_fixed_ref.txt \
@@ -22,7 +22,7 @@ SigFreq \
 --group-num 1 \
 --tar-lower ${upper} --ref-upper ${lower} 
 
-${tool_dir}/GSEXP \
+${tool_dir}/GSP \
 SigLh \
 -i ${dir}/Toy.vcf \
 -o ${dir}/Toy_ml_ref.txt \
