@@ -477,9 +477,9 @@ class thread_analysis_module{
 
 			string hline_str=generate_line_header(line_vec);
 			op_str=hline_str;
-			if(param.dist_mode){
-				op_str+=to_string(site_var_num)+'\t'+to_string(site_var_ind_num)+'\t'+to_string(site_total_ind_num);
-			}
+			// if(param.dist_mode){
+			// 	op_str+=to_string(site_var_num)+'\t'+to_string(site_var_ind_num)+'\t'+to_string(site_total_ind_num);
+			// }
 			for (int i = 0; i < pop_vec.size(); ++i){
 				op_str+='\t'+freq_dict[pop_vec[i]];
 			}
