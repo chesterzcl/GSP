@@ -12,6 +12,7 @@
 #include<sstream>
 #include<iomanip>
 #include<unordered_set>
+#include <limits>
 using namespace std;
 
 void check_file_open_status(ifstream& input,string input_address){
@@ -81,7 +82,6 @@ string find_str_after_nth_char(string& str,int n,char delim){
 			op_str+=str[i];
 		}
 	}
-	return op_str;
 }
 
 int check_genotype(string& geno_field){
@@ -258,27 +258,41 @@ bool isSTR(vector<string>& input_vec){
 }
 
 //t-test module
-double calc_mean(vector<double>& arr){
+double calc_mean(const std::vector<double>& arr){
    double sum = 0;
    for (int i = 0; i < arr.size(); i++)
       sum = sum + arr[i];
    return (double) sum / arr.size();
 }
 //calculating standard deviation
-double calc_deviation(vector<double>& arr){
-   double sum = 0;
-   for (int i = 0; i < arr.size(); i++)
-      sum = sum + (arr[i] - calc_mean(arr)) * (arr[i] - calc_mean(arr));
-   return sqrt((double) sum / (arr.size() - 1));
+double calc_deviation(const std::vector<double>& arr){
+    const size_t n = arr.size();
+    if (n < 2) return std::numeric_limits<double>::quiet_NaN();
+
+    const double mean = calc_mean(arr);  // Calculate once
+    double ss = 0.0;
+    for (double v : arr){
+        const double d = v - mean;
+        ss += d * d;
+    }
+    return std::sqrt(ss / (n - 1));
 }
-//finding t-test statistics of two data
-double calc_ttest(vector<double>& arr1,vector<double>& arr2){
-   double mean1 = calc_mean(arr1);
-   double mean2 = calc_mean(arr2);
-   double sd1 = calc_deviation(arr1);
-   double sd2 = calc_deviation(arr2);
-   double t_test = (mean1 - mean2) / sqrt((sd1 * sd1) / arr1.size() + (sd2 * sd2) / arr2.size());
-   return t_test;
+//finding t-test statistics of two data (pooled variance two-sample t)
+double calc_ttest(const std::vector<double>& arr1, const std::vector<double>& arr2){
+    const size_t n1 = arr1.size();
+    const size_t n2 = arr2.size();
+    if (n1 < 2 || n2 < 2) return std::numeric_limits<double>::quiet_NaN();
+
+    const double m1 = calc_mean(arr1);
+    const double m2 = calc_mean(arr2);
+
+    double ss1 = 0.0, ss2 = 0.0;
+    for (double v : arr1){ const double d = v - m1; ss1 += d * d; }
+    for (double v : arr2){ const double d = v - m2; ss2 += d * d; }
+
+    const double s2_pooled = (ss1 + ss2) / static_cast<double>(n1 + n2 - 2);
+    const double denom = std::sqrt(s2_pooled * (1.0 / n1 + 1.0 / n2));
+    return (m1 - m2) / denom;
 }
 
 int kmeans_find_boundary(vector<double>& input_vec,int iter){
