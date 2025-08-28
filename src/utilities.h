@@ -31,18 +31,22 @@ void check_file_open_status(ofstream& output,string output_address){
 	cout<<"File: "<<output_address<<" successfully opened."<<endl;
 }
 
-vector<string> read_char_delim_str(string& line,char delim){
+vector<string> read_char_delim_str(const string& line, char delim){
 	vector<string> output;
-	string temp="";
-	for (int i = 0; i < line.size(); ++i){
-		if (line[i]==delim){
-			output.push_back(temp);
-			temp="";
-		}else{
-			temp+=line[i];
+	output.reserve(16);  // Reserve space for typical VCF line
+	
+	size_t start = 0;
+	size_t pos = 0;
+	const size_t line_size = line.size();
+	
+	while (pos < line_size) {
+		if (line[pos] == delim) {
+			output.emplace_back(line.substr(start, pos - start));
+			start = pos + 1;
 		}
+		pos++;
 	}
-	output.push_back(temp);
+	output.emplace_back(line.substr(start));
 	return output;
 }
 
@@ -57,30 +61,32 @@ string generate_line_header(vector<string> line_vec){
 	return lheader_str;
 }
 
-string find_str_after_nth_char(string& str,int n,char delim){
-	int cter=0,idx;
-	string op_str;
-	if(n>0){
-		for (int i = 0; i < str.length(); ++i){
-			if(str[i]==delim){
-				cter++;
-			}
-			if(cter==n){
-				idx=i+1;
-				while(str[idx]!=delim&&idx<str.length()){
-					op_str+=str[idx];
-					idx++;
+string find_str_after_nth_char(const string& str, int n, char delim){
+	int counter = 0;
+	size_t start = 0;
+	const size_t str_size = str.length();
+	
+	if (n > 0) {
+		for (size_t i = 0; i < str_size; ++i) {
+			if (str[i] == delim) {
+				counter++;
+				if (counter == n) {
+					start = i + 1;
+					break;
 				}
-				break;
 			}
-		}		
-	}else{
-		for (int i = 0; i < str.length(); ++i){
-			if(str[i]==delim){
-				break;
-			}
-			op_str+=str[i];
 		}
+		// Find end position
+		for (size_t i = start; i < str_size; ++i) {
+			if (str[i] == delim) {
+				return str.substr(start, i - start);
+			}
+		}
+		return str.substr(start);  // Return rest if no delimiter found
+	} else {
+		// Return substring before first delimiter
+		size_t pos = str.find(delim);
+		return (pos != string::npos) ? str.substr(0, pos) : str;
 	}
 }
 
