@@ -13,11 +13,11 @@ using namespace std;
 
 class input_param{
 	public:
-		double pop1_upper,pop1_lower,pop2_upper,pop2_lower,af,sample_frac,mean_llh;
-		int eff_sample,min_sample,min_sample_tar,min_sample_ref,thread_num,analysis_mode,pop_num,min_depth,max_admix_pop,max_homo_pop,seed,min_rep_size,rep_num,experiment_times;
+		double pop1_upper,pop1_lower,pop2_upper,pop2_lower,af,sample_frac,mean_llh,seg_bandwidth,seg_density_threshold,seg_merge_distance,seg_likelihood_threshold;
+		int eff_sample,min_sample,min_sample_tar,min_sample_ref,thread_num,analysis_mode,pop_num,min_depth,max_admix_pop,max_homo_pop,seed,min_rep_size,rep_num,experiment_times,seg_min_variants;
 		string var_type,ann_flag,ann_file,var_list_file,pop_file,vcf_file,output_file,depth_file,likelihood_file;
 		set<string> pop1,pop2,pop_all;
-		bool verbose,ml_mode,lh_mode,StrPrint,isGS,isEXP,no_splicing,kmeans,flip,dist_mode,exhaust_disc_mode,exhaust_valid_mode,output_per_sample_gt,bipop_mode,unipop_mode,gene_mode,unique_valid_mode,combine_all,STR_mode,INDEL_mode;
+		bool verbose,ml_mode,lh_mode,StrPrint,isGS,isEXP,no_splicing,kmeans,flip,dist_mode,exhaust_disc_mode,exhaust_valid_mode,output_per_sample_gt,bipop_mode,unipop_mode,gene_mode,unique_valid_mode,combine_all,STR_mode,INDEL_mode,seg_mode,seg_adaptive_bandwidth;
 
 		void reset_freq_param(){
 			min_depth=0;
@@ -59,10 +59,18 @@ class input_param{
 			combine_all=false;
 			unipop_mode=false;
 			lh_mode=false;
+			seg_mode=false;
 			kmeans=false;
 			isEXP=false;
 			isGS=false;
 			StrPrint=false;
+			// Segment analysis default parameters
+			seg_bandwidth=10000.0;        // 10kb Gaussian kernel bandwidth
+			seg_density_threshold=0.1;    // Minimum regional density score
+			seg_merge_distance=50000.0;   // 50kb segment merge distance
+			seg_likelihood_threshold=0.1; // Threshold T for φ(Lj) filter function
+			seg_adaptive_bandwidth=false; // Use fixed bandwidth by default
+			seg_min_variants=3;           // Minimum 3 variants per segment
 		}
 
 		void print_input_parameters(){
@@ -279,6 +287,40 @@ void input_param::read_parameters(int argc, char const *argv[]){
 		}else if(cur_str=="SigMl"){
 			ml_mode=true;
 			analysis_dict["Analysis mode 11: "]="Selflearning likelihood based profiling";
+			idx++;
+		}else if(cur_str=="SigSeg"){
+			seg_mode=true;
+			analysis_mode=12;
+			analysis_dict["Analysis mode 12: "]="Segment-first discovery with regional density scoring";
+			idx++;
+		}else if(cur_str=="--seg-bandwidth"){
+			idx++;
+			seg_bandwidth=stod(argv[idx]);
+			param_dict["Segment analysis Gaussian kernel bandwidth (bp): "]=to_string(seg_bandwidth);			
+			idx++;
+		}else if(cur_str=="--seg-density-thresh"){
+			idx++;
+			seg_density_threshold=stod(argv[idx]);
+			param_dict["Segment analysis regional density threshold: "]=to_string(seg_density_threshold);			
+			idx++;
+		}else if(cur_str=="--seg-merge-dist"){
+			idx++;
+			seg_merge_distance=stod(argv[idx]);
+			param_dict["Segment analysis merge distance (bp): "]=to_string(seg_merge_distance);			
+			idx++;
+		}else if(cur_str=="--seg-min-vars"){
+			idx++;
+			seg_min_variants=stoi(argv[idx]);
+			param_dict["Segment analysis minimum variants per segment: "]=to_string(seg_min_variants);			
+			idx++;
+		}else if(cur_str=="--seg-lh-thresh"){
+			idx++;
+			seg_likelihood_threshold=stod(argv[idx]);
+			param_dict["Segment analysis likelihood threshold for φ(Lj): "]=to_string(seg_likelihood_threshold);			
+			idx++;
+		}else if(cur_str=="--seg-adaptive"){
+			seg_adaptive_bandwidth=true;
+			param_dict["Segment analysis adaptive bandwidth: "]="enabled";
 			idx++;
 		}else if(cur_str=="--tar-lower"){
 			idx++;

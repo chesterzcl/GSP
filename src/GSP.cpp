@@ -5,6 +5,7 @@
 #include "input_param.h"
 #include "main_analysis_module.h"
 #include "thread_analysis_module.h"
+#include "segment_integrated_analysis.h"
 
 using namespace std;
 
@@ -40,6 +41,24 @@ int main(int argc, char const *argv[]){
 		if(tp.param.var_list_file!=""){
 			tp.var.load_variant_data(tp.param.var_list_file);
 		}
+	}else if(tp.param.analysis_mode==12){
+		// SigSeg mode: Segment-first discovery with regional density scoring
+		cout<<"Launching segment-first discovery analysis..."<<endl;
+		if(tp.param.var_list_file!=""){
+			tp.var.load_variant_data(tp.param.var_list_file);
+		}
+		// Create segment analyzer and run analysis
+		segment_integrated_analysis seg_analyzer(tp.param);
+		seg_analyzer.print_segment_parameters(tp.param);
+		if(!seg_analyzer.validate_segment_parameters(tp.param)){
+			cout<<"Error: Invalid segment parameters. Analysis terminated."<<endl;
+			return 1;
+		}
+		seg_analyzer.segment_population_frequency_analysis(
+			tp.param.vcf_file, tp.param.output_file, 
+			tp.pop, tp.param, tp.var, tp.ann);
+		cout<<"Segment-first discovery analysis completed."<<endl;
+		return 0;
 	}
 	tp.multi_thread_freq_analysis(tp.param.thread_num);
 	// if(tp.param.analysis_mode==11){
