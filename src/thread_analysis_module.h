@@ -5,6 +5,7 @@
 #include<queue>
 #include<condition_variable>
 #include<filesystem>
+#include<atomic>
 #include "utilities.h"
 #include "pop_data.h"
 #include "var_list.h"
@@ -27,12 +28,6 @@ class thread_analysis_module{
 		input_param param;
 		data_printer dp;
 
-		void load_thread_vec(){
-			cout<<th_num<<" cores detected."<<endl;
-			for (int i = 0; i < th_num; ++i){
-				cter_vec.push_back(0);
-			}
-		}
 
 		string examine_var_type(string& ref_str,string& alt_str){
 			string var_type="OTHER";
@@ -185,7 +180,7 @@ class thread_analysis_module{
 					line_cter++;
 					var_cter=si_q.size();
 
-					while(si_q.size()>=(thread_num-1)*300000){
+					while(thread_num > 1 && si_q.size()>(thread_num-1)*300000){
 						this_thread::sleep_for(chrono::milliseconds(1000));
 						cout<<si_q.size()<<" in-memory variants currently waiting for processing..."<<endl;
 						var_cter=si_q.size();
@@ -306,13 +301,16 @@ class thread_analysis_module{
 			pair<string,pair<int,int> > q_pair;
 			pair<vector<string>,vector<string> > str_vec_pair;
 			while(true){
-				if(completed){
+				unique_lock<mutex> ul(ip_mutex);	
+				// Wait until queue has data OR reader completed
+				g_cv.wait(ul,[this](){return !si_q.empty() || completed;});
+				
+				// Exit if completed and no more data to process
+				if(completed && si_q.empty()){
 					break;
 				}
-				unique_lock<mutex> ul(ip_mutex);	
-				if(si_q.size()==0){
-					g_cv.wait(ul,[](){return g_ready;});
-				}else{
+				
+				if(!si_q.empty()){
 					q_pair=si_q.front();
 					si_q.pop();
 					ul.unlock();
@@ -613,13 +611,16 @@ class thread_analysis_module{
 			pair<string,pair<int,int> > q_pair;
 			pair<vector<string>,vector<string> > str_vec_pair;
 			while(true){
-				if(completed){
+				unique_lock<mutex> ul(ip_mutex);	
+				// Wait until queue has data OR reader completed
+				g_cv.wait(ul,[this](){return !si_q.empty() || completed;});
+				
+				// Exit if completed and no more data to process
+				if(completed && si_q.empty()){
 					break;
 				}
-				unique_lock<mutex> ul(ip_mutex);	
-				if(si_q.size()==0){
-					g_cv.wait(ul,[](){return g_ready;});
-				}else{
+				
+				if(!si_q.empty()){
 					q_pair=si_q.front();
 					si_q.pop();
 					ul.unlock();
@@ -964,7 +965,7 @@ class thread_analysis_module{
 
 					line_cter++;
 					var_cter=sp_q.size();
-					while(sp_q.size()>=(thread_num-1)*200000)
+					while(thread_num > 1 && sp_q.size()>(thread_num-1)*200000)
 					{
 						this_thread::sleep_for(chrono::milliseconds(1000));
 						cout<<sp_q.size()<<" in-memory variants currently waiting for processing..."<<endl;
@@ -1056,15 +1057,18 @@ class thread_analysis_module{
 			pair<vector<string>,vector<string> > str_vec_pair;
 			while(true)
 			{
-				if(completed)
+				unique_lock<mutex> ul(ip_mutex);
+				// Wait until queue has data OR reader completed  
+				g_cv.wait(ul,[this](){return !sp_q.empty() || completed;});
+				
+				// Exit if completed and no more data to process
+				if(completed && sp_q.empty())
 				{
 					break;
 				}
-				unique_lock<mutex> ul(ip_mutex);
-				if(sp_q.size()==0)
+				
+				if(!sp_q.empty())
 				{
-					g_cv.wait(ul,[](){return g_ready;});
-				}else{
 					q_pair=sp_q.front();
 					// cter_vec[i]++;
 					sp_q.pop();
@@ -1217,15 +1221,17 @@ class thread_analysis_module{
 			string var_ctgry;
 			while(true)
 			{
-				if(completed)
+				unique_lock<mutex> ul(ip_mutex);
+				// Wait until queue has data OR reader completed
+				g_cv.wait(ul,[this](){return !sp_q.empty() || completed;});
+				
+				// Exit if completed and no more data to process
+				if(completed && sp_q.size()==0)
 				{
 					break;
 				}
-				unique_lock<mutex> ul(ip_mutex);
-				if(sp_q.size()==0)
-				{
-					g_cv.wait(ul,[](){return g_ready;});
-				}else{
+				
+				if(sp_q.size()>0){
 					q_pair=sp_q.front();
 					sp_q.pop();
 					ul.unlock();
@@ -1702,7 +1708,7 @@ class thread_analysis_module{
 					line_cter++;
 					var_cter=sp_q.size();
 
-					while(sp_q.size()>=(thread_num-1)*200000)
+					while(thread_num > 1 && sp_q.size()>(thread_num-1)*200000)
 					{
 						this_thread::sleep_for(chrono::milliseconds(1000));
 						cout<<sp_q.size()<<" in-memory variants currently waiting for processing..."<<endl;
@@ -1833,13 +1839,16 @@ class thread_analysis_module{
 			pair<string,int> q_pair;
 			// cout<<"ML loader launched."<<endl;
 			while(true){
-				if(completed){
+				unique_lock<mutex> ul(ip_mutex);
+				// Wait until queue has data OR reader completed
+				g_cv.wait(ul,[this](){return !sp_q.empty() || completed;});
+				
+				// Exit if completed and no more data to process
+				if(completed && sp_q.size()==0){
 					break;
 				}
-				unique_lock<mutex> ul(ip_mutex);
-				if(sp_q.size()==0){
-					g_cv.wait(ul,[](){return g_ready;});
-				}else{
+				
+				if(sp_q.size()>0){
 					q_pair=sp_q.front();
 					sp_q.pop();
 					ul.unlock();
@@ -2164,15 +2173,17 @@ class thread_analysis_module{
 			// cout<<"LLH ml loader launched."<<endl;
 			while(true)
 			{
-				if(completed)
+				unique_lock<mutex> ul(ip_mutex);
+				// Wait until queue has data OR reader completed
+				g_cv.wait(ul,[this](){return !sp_q.empty() || completed;});
+				
+				// Exit if completed and no more data to process
+				if(completed && sp_q.size()==0)
 				{
 					break;
 				}
-				unique_lock<mutex> ul(ip_mutex);
-				if(sp_q.size()==0)
-				{
-					g_cv.wait(ul,[](){return g_ready;});
-				}else{
+				
+				if(sp_q.size()>0){
 					q_pair=sp_q.front();
 					sp_q.pop();
 					ul.unlock();
@@ -2378,15 +2389,17 @@ class thread_analysis_module{
 			string ip_str,op_str;
 			while(true)
 			{
-				if(completed)
+				unique_lock<mutex> ul(ip_mutex);
+				// Wait until queue has data OR reader completed
+				g_cv.wait(ul,[this](){return !sp_q.empty() || completed;});
+				
+				// Exit if completed and no more data to process
+				if(completed && sp_q.size()==0)
 				{
 					break;
 				}
-				unique_lock<mutex> ul(ip_mutex);
-				if(sp_q.size()==0)
-				{
-					g_cv.wait(ul,[](){return g_ready;});
-				}else{
+				
+				if(sp_q.size()>0){
 					pair<string,int> q_pair=sp_q.front();
 					sp_q.pop();
 					ul.unlock();
@@ -2711,15 +2724,17 @@ class thread_analysis_module{
 			unordered_map<int,int> mutation_dict;
 			while(true)
 			{
-				if(completed)
+				unique_lock<mutex> ul(ip_mutex);
+				// Wait until queue has data OR reader completed
+				g_cv.wait(ul,[this](){return !sp_q.empty() || completed;});
+				
+				// Exit if completed and no more data to process
+				if(completed && sp_q.size()==0)
 				{
 					break;
 				}
-				unique_lock<mutex> ul(ip_mutex);
-				if(sp_q.size()==0)
-				{
-					g_cv.wait(ul,[](){return g_ready;});
-				}else{
+				
+				if(sp_q.size()>0){
 					q_pair=sp_q.front();
 					sp_q.pop();
 					ul.unlock();
@@ -2767,6 +2782,20 @@ class thread_analysis_module{
 		//Analysis launcher
 		
 		void multi_thread_freq_analysis(int t){
+			// Initialize threading infrastructure for all modules
+			th_vec.clear();
+			
+			// Initialize progress tracking (only if needed by modules)
+			if (cter_vec.empty()) {
+				cout<<th_num<<" cores detected."<<endl;
+				for (int i = 0; i < static_cast<int>(th_num); ++i){
+					cter_vec.push_back(0);
+				}
+			} else {
+				// Reset existing counters
+				fill(cter_vec.begin(), cter_vec.end(), 0);
+			}
+			
 			if(param.analysis_mode==3||param.analysis_mode==1){
 				thread t1(&thread_analysis_module::ed_variant_reader,this,0,ref(pop),ref(param),ref(var),ref(ann),t);
 				for (int i = 1; i < t; ++i)
@@ -2874,11 +2903,416 @@ class thread_analysis_module{
 				{
 					th_vec2[i].join();
 				}	
+			}else if(param.analysis_mode==12){
+				// SigSeg mode: Multi-threaded segment-first discovery
+				cout<<"Starting multi-threaded segment-first discovery..."<<endl;
+				completed=false;
+				g_ready=false;
+				segment_variants.clear();  // Initialize SigSeg-specific data only
+				
+				// Phase 1: Multi-threaded frequency filtering and likelihood calculation
+				cout<<"Phase 1: Multi-threaded frequency filtering and likelihood calculation..."<<endl;
+				thread t1(&thread_analysis_module::segment_variant_reader,this,0,ref(pop),ref(param),ref(var),ref(ann),t);
+				for (int thread_id = 1; thread_id < t; ++thread_id)
+				{
+					th_vec.push_back(thread(&thread_analysis_module::segment_data_loader,this,thread_id,ref(pop),ref(param),ref(var),ref(ann)));
+				}
+				t1.join();
+				for (int i = 0; i < th_vec.size(); ++i)
+				{
+					th_vec[i].join();
+				}
+				
+				cout<<"Phase 1 completed. " << segment_variants.size() << " frequency-filtered variants collected."<<endl;
+				
+				// Phase 2: Multi-threaded regional density calculation
+				if (segment_variants.size() > 0) {
+					cout<<"Phase 2: Multi-threaded regional density calculation..."<<endl;
+					
+					// Memory barrier: Ensure all Phase 1 writes are visible before Phase 2 reads
+					atomic_thread_fence(memory_order_seq_cst);
+					
+					// Validate work distribution
+					if (segment_variants.size() < static_cast<size_t>(t)) {
+						cout<<"Note: " << segment_variants.size() << " variants < " << t << " threads. Some threads will be idle."<<endl;
+					}
+					
+					// Use separate thread vector for Phase 2 to avoid joining already-joined threads
+					vector<thread> phase2_threads;
+					for (int thread_id = 0; thread_id < t; ++thread_id) {
+						phase2_threads.push_back(thread(&thread_analysis_module::segment_density_calculator,this,thread_id,t,ref(param)));
+					}
+					
+					// Wait for all density calculation threads to complete
+					for (int i = 0; i < phase2_threads.size(); ++i) {
+						phase2_threads[i].join();
+					}
+					
+					// Count variants that pass density threshold
+					int passing_variants = 0;
+					for (const auto& variant : segment_variants) {
+						if (variant.passes_criteria) passing_variants++;
+					}
+					
+					cout<<"Phase 2 completed. " << passing_variants << " variants pass density threshold."<<endl;
+					
+					// Phase 3 & 4: Single-threaded segment formation and output (following GSP convention)
+					cout<<"Phase 3-4: Single-threaded segment formation and output generation..."<<endl;
+					generate_segment_output(param);
+				} else {
+					cout<<"No variants passed frequency filtering. Skipping density calculation."<<endl;
+				}
+			}
+		}
+
+		// SigSeg segment-first discovery threading methods
+		void segment_variant_reader(int reader_id, pop_data& pop, input_param& param, var_list& var, ann_data& ann, int total_threads) {
+			input.open(input_ad);
+			check_file_open_status(input, input_ad);
+			
+			cout << "Phase 1: Multi-threaded variant loading with frequency filtering..." << endl;
+			
+			string line;
+			int row_cter = 1, row_cur = 0;
+			vector<string> line_vec;
+			
+			// Process VCF and queue variants for worker threads
+			while(getline(input, line)) {
+				if(line[0] != '#') {
+					if(row_cter % 10000 == 0) {
+						cout << row_cter << " variants processed by reader thread." << endl;
+					}
+					
+					line_vec = read_char_delim_str(line, '\t');
+					
+					// Process variants based on whether variant list is provided
+					bool process_variant = false;
+					if(var.var_mat.empty()) {
+						// No variant list provided: process all variants
+						process_variant = true;
+					} else {
+						// Variant list provided: only process matching variants
+						if(row_cur < var.var_mat.size() && 
+						   var.var_mat[row_cur][0] == line_vec[0] && 
+						   var.var_mat[row_cur][1] == line_vec[1]) {
+							process_variant = true;
+							row_cur++;
+						}
+					}
+					
+					if (process_variant) {
+						// Add to queue for worker threads to process
+						unique_lock<mutex> ul(ip_mutex);
+						si_q.push(make_pair(line, make_pair(row_cter, row_cur)));
+						ul.unlock();
+						g_cv.notify_one();
+					}
+					
+					row_cter++;
+				}
+			}
+			input.close();
+			
+			// Signal completion to worker threads
+			unique_lock<mutex> ul(ip_mutex);
+			completed = true;
+			ul.unlock();
+			g_cv.notify_all();
+			
+			cout << "Phase 1 completed by reader thread. Waiting for worker threads..." << endl;
+		}
+
+		void segment_data_loader(int thread_id, pop_data& pop, input_param& param, var_list& var, ann_data& ann) {
+			vector<string> pop_vec;
+			
+			// Get population vector
+			for (unordered_map<string,set<string> >::iterator it = pop.pop_dict.begin(); 
+				 it != pop.pop_dict.end(); ++it) {
+				if (it->second.size() >= param.min_sample) {
+					pop_vec.push_back(it->first);
+				}
+			}
+			
+			string ip_str;
+			int line_mark, row_mark;
+			pair<string, pair<int,int> > q_pair;
+			vector<string> line_vec;
+			
+			while(true) {
+				unique_lock<mutex> ul(ip_mutex);
+				// Wait until queue has data OR reader completed
+				g_cv.wait(ul, [this](){return !si_q.empty() || completed;});
+				
+				// Exit if completed and no more data to process
+				if(completed && si_q.empty()) {
+					break;
+				}
+				
+				if(!si_q.empty()) {
+					q_pair = si_q.front();
+					si_q.pop();
+					ul.unlock();
+					
+					// Process variant
+					ip_str = q_pair.first;
+					line_mark = q_pair.second.first;
+					row_mark = q_pair.second.second;
+					line_vec = read_char_delim_str(ip_str, '\t');
+					
+					// Calculate frequency using threaded logic
+					double frequency = calculate_segment_variant_frequency(pop, pop_vec, param, line_vec);
+					bool freq_pass = (frequency >= param.pop1_lower && frequency <= param.pop1_upper);
+					
+					if (freq_pass) {
+						// Calculate likelihood
+						double likelihood_score = calculate_segment_variant_likelihood(pop, pop_vec, param, line_vec);
+						
+						// Store variant data for Phase 2 processing
+						string variant_info = read_char_delim_str(line_vec[7], '|')[3] + "|" +
+											read_char_delim_str(line_vec[7], '|')[1] + "|" +
+											read_char_delim_str(line_vec[7], '|')[10];
+						
+						ul.lock();
+						// Add to shared variant collection for Phase 2
+						segment_variants.push_back({line_vec[0], stoi(line_vec[1]), 
+												   likelihood_score, frequency, variant_info, 0.0, false});
+						cter_vec[thread_id]++; // Track thread progress
+						ul.unlock();
+					}
+				} else {
+					ul.unlock();
+				}
+			}
+		}
+
+		// Phase 2: Multi-threaded regional density calculation
+		void segment_density_calculator(int thread_id, int total_threads, input_param& param) {
+			const int variant_count = static_cast<int>(segment_variants.size());
+			
+			// Proper work distribution with edge case handling
+			if (variant_count == 0) {
+				cout << "Thread " << thread_id << " has no work (0 variants)" << endl;
+				return;
+			}
+			
+			// Calculate work distribution
+			const int variants_per_thread = (variant_count + total_threads - 1) / total_threads;
+			const int start_idx = thread_id * variants_per_thread;
+			const int end_idx = min(start_idx + variants_per_thread, variant_count);
+			
+			// Handle case where thread_id >= variant_count
+			if (start_idx >= variant_count) {
+				cout << "Thread " << thread_id << " has no work (start_idx " << start_idx << " >= variant_count " << variant_count << ")" << endl;
+				return;
+			}
+			
+			const double bandwidth_sigma = param.seg_bandwidth;
+			const double likelihood_threshold = param.seg_likelihood_threshold;
+			
+			cout << "Thread " << thread_id << " calculating density for variants " << start_idx << " to " << (end_idx-1) << endl;
+			
+			// Calculate regional density for assigned variant range
+			// Thread-safe read-only access to segment_variants (protected by memory barrier)
+			for (int i = start_idx; i < end_idx; i++) {
+				if (i % 100 == 0 && i > start_idx) {
+					cout << "Thread " << thread_id << " processing variant " << i << "/" << variant_count << endl;
+				}
+				
+				// Bounds checking
+				if (i >= variant_count) {
+					cout << "Thread " << thread_id << " bounds error: i=" << i << " >= variant_count=" << variant_count << endl;
+					break;
+				}
+				
+				double weighted_sum = 0.0;      // Numerator
+				double weight_sum = 0.0;        // Denominator
+				
+				// Get const reference to target variant (thread-safe read)
+				const auto& target_variant = segment_variants[i];
+				
+				// Calculate normalized Gaussian kernel density
+				for (int j = 0; j < variant_count; j++) {
+					// Get const reference to neighbor variant (thread-safe read)
+					const auto& neighbor_variant = segment_variants[j];
+					
+					// Skip if different chromosomes
+					if (target_variant.chromosome != neighbor_variant.chromosome) continue;
+					
+					double distance = abs(neighbor_variant.position - target_variant.position);
+					double exponent = -(distance * distance) / (2.0 * bandwidth_sigma * bandwidth_sigma);
+					double gaussian_weight = exp(exponent);
+					
+					// Apply φ(Lj) gate function (1.0 for target, threshold gate for neighbors)
+					double phi_Lj = 1.0;
+					if (distance > 0) {  // Only apply gate to neighbors, not target itself
+						phi_Lj = (neighbor_variant.likelihood_score > likelihood_threshold) ? 1.0 : 0.0;
+					}
+					
+					weighted_sum += gaussian_weight * phi_Lj * neighbor_variant.likelihood_score;
+					weight_sum += gaussian_weight * phi_Lj;
+				}
+				
+				// Compute normalized regional density
+				// Thread-safe write: each thread writes only to its assigned range [start_idx, end_idx)
+				segment_variants[i].regional_density = (weight_sum > 0.0) ? (weighted_sum / weight_sum) : 0.0;
+				
+				// Apply density threshold
+				segment_variants[i].passes_criteria = (segment_variants[i].regional_density >= param.seg_density_threshold);
+			}
+		}
+
+		// Helper methods for SigSeg threading
+		double calculate_segment_variant_frequency(pop_data& pop, vector<string>& pop_vec, 
+												 input_param& param, vector<string>& line_vec) {
+			int total_individuals = 0;
+			int variant_alleles = 0;
+			
+			for (const string& pop_name : pop_vec) {
+				for (set<int>::iterator j = pop.pop_col_dict[pop_name].begin(); 
+					 j != pop.pop_col_dict[pop_name].end(); ++j) {
+					
+					if(line_vec[*j][0] == '0' || line_vec[*j][0] == '1') {
+						total_individuals++;
+						
+						// Parse genotype: count variant alleles (1) in diploid genotype
+						char allele1 = line_vec[*j][0];
+						char allele2 = line_vec[*j][2];
+						
+						if (allele1 == '1') variant_alleles++; // First allele is variant
+						if (allele2 == '1') variant_alleles++; // Second allele is variant
+					}
+				}
+			}
+			
+			if (total_individuals > 0) {
+				// Return allele frequency (proportion of variant alleles)
+				return (double)variant_alleles / (double)(2 * total_individuals);
+			}
+			return 0.0;
+		}
+
+		double calculate_segment_variant_likelihood(pop_data& pop, vector<string>& pop_vec, 
+												  input_param& param, vector<string>& line_vec) {
+			double max_log_likelihood = -1e10;
+			
+			for (const string& pop_name : pop_vec) {
+				// Count genotypes and estimate frequency
+				int n_AA = 0, n_Aa = 0, n_aa = 0;
+				int total_samples = 0;
+				int variant_alleles = 0;
+				
+				for (set<int>::iterator j = pop.pop_col_dict[pop_name].begin(); 
+					 j != pop.pop_col_dict[pop_name].end(); ++j) {
+					
+					if(line_vec[*j][0] == '0' || line_vec[*j][0] == '1') {
+						total_samples++;
+						
+						// Parse genotype: 0/0, 0/1, 1/1
+						char allele1 = line_vec[*j][0];
+						char allele2 = line_vec[*j][2];
+						
+						if (allele1 == '0' && allele2 == '0') {
+							n_aa++; // Homozygous reference (aa)
+						} else if ((allele1 == '0' && allele2 == '1') || (allele1 == '1' && allele2 == '0')) {
+							n_Aa++; // Heterozygous (Aa)
+							variant_alleles++; // Count one variant allele
+						} else if (allele1 == '1' && allele2 == '1') {
+							n_AA++; // Homozygous variant (AA)
+							variant_alleles += 2; // Count two variant alleles
+						}
+					}
+				}
+				
+				if (total_samples > 0) {
+					// Calculate allele frequency
+					double f = (double)variant_alleles / (double)(2 * total_samples);
+					
+					// Calculate log-likelihood using Hardy-Weinberg probabilities
+					double log_likelihood = calculate_segment_hw_log_likelihood(f, n_AA, n_Aa, n_aa);
+					
+					max_log_likelihood = max(max_log_likelihood, log_likelihood);
+				}
+			}
+			
+			return max_log_likelihood;
+		}
+
+		double calculate_segment_hw_log_likelihood(double f, int n_AA, int n_Aa, int n_aa) {
+			// Handle edge cases
+			if (f <= 0.0 || f >= 1.0) {
+				return -1e10;
+			}
+			
+			double log_likelihood = 0.0;
+			
+			// Hardy-Weinberg genotype probabilities:
+			// P(AA|f) = f²; P(Aa|f) = 2f(1-f); P(aa|f) = (1-f)²
+			if (n_AA > 0) {
+				log_likelihood += n_AA * log(f * f);
+			}
+			
+			if (n_Aa > 0) {
+				log_likelihood += n_Aa * log(2.0 * f * (1.0 - f));
+			}
+			
+			if (n_aa > 0) {
+				log_likelihood += n_aa * log((1.0 - f) * (1.0 - f));
+			}
+			
+			return log_likelihood;
+		}
+
+		// Phase 3-4: Single-threaded segment formation and output generation  
+		void generate_segment_output(input_param& param) {
+			// Simple output generation for now - write basic results to temp file
+			cout << "Generating basic output from " << segment_variants.size() << " variants..." << endl;
+			
+			// Write variant results to output file
+			output.open(output_ad);
+			if (output.is_open()) {
+				// Write header
+				output << "#CHROMOSOME\tPOSITION\tLIKELIHOOD_SCORE\tFREQUENCY\tREGIONAL_DENSITY\tPASSES_CRITERIA\tVARIANT_INFO" << endl;
+				
+				// Write variant data
+				int output_count = 0;
+				for (const auto& variant : segment_variants) {
+					if (variant.passes_criteria) {
+						output << variant.chromosome << '\t'
+							   << variant.position << '\t'  
+							   << variant.likelihood_score << '\t'
+							   << variant.frequency << '\t'
+							   << variant.regional_density << '\t'
+							   << (variant.passes_criteria ? "PASS" : "FAIL") << '\t'
+							   << variant.variant_info << endl;
+						output_count++;
+					}
+				}
+				output.close();
+				cout << "Output written: " << output_count << " variants passed all filters." << endl;
+			} else {
+				cout << "Error: Could not open output file " << output_ad << endl;
 			}
 		}
 
 
 	private:
+		// SigSeg variant structure for multi-threaded processing
+		struct variant_locus {
+			string chromosome;
+			int position;
+			double likelihood_score;
+			double frequency;
+			string variant_info;
+			double regional_density;
+			bool passes_criteria;
+			
+			variant_locus(string chr, int pos, double lh, double freq, string info, double density = 0.0, bool pass = false)
+				: chromosome(chr), position(pos), likelihood_score(lh), frequency(freq), 
+				  variant_info(info), regional_density(density), passes_criteria(pass) {}
+		};
+		
+		vector<variant_locus> segment_variants;  // Shared variant collection for Phase 2
+		
 		ifstream input,temp_input;
 		ofstream output,temp_output,output2;
 		string input_ad,output_ad,temp_ad;
