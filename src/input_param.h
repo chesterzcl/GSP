@@ -65,12 +65,12 @@ class input_param{
 			isGS=false;
 			StrPrint=false;
 			// Segment analysis default parameters
-			seg_bandwidth=10000.0;        // 10kb Gaussian kernel bandwidth
-			seg_density_threshold=0.1;    // Minimum regional density score
-			seg_merge_distance=50000.0;   // 50kb segment merge distance
-			seg_likelihood_threshold=0.1; // Threshold T for φ(Lj) filter function
-			seg_adaptive_bandwidth=false; // Use fixed bandwidth by default
-			seg_min_variants=3;           // Minimum 3 variants per segment
+			seg_bandwidth=10000.0;         // 10kb Gaussian kernel bandwidth
+			seg_density_threshold=-5.0;    // Minimum regional density score (log-likelihood scale)
+			seg_merge_distance=50000.0;    // 50kb segment merge distance
+			seg_likelihood_threshold=-3.0; // Threshold T for φ(Lj) filter function (log-likelihood scale)
+			seg_adaptive_bandwidth=false;  // Use fixed bandwidth by default
+			seg_min_variants=3;            // Minimum 3 variants per segment
 		}
 
 		void print_input_parameters(){

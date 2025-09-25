@@ -58,14 +58,24 @@ public:
                 }
                 row_cter++;
                 
-                if(row_cur == var.var_mat.size()) break;
-                
                 line_vec = read_char_delim_str(line, '\t');
                 
-                // Match VCF line with target variant
-                if(var.var_mat[row_cur][0] == line_vec[0] && 
-                   var.var_mat[row_cur][1] == line_vec[1]) {
-                    
+                // Process variants based on whether variant list is provided
+                bool process_variant = false;
+                if(var.var_mat.empty()) {
+                    // No variant list provided: process all variants
+                    process_variant = true;
+                } else {
+                    // Variant list provided: only process matching variants
+                    if(row_cur < var.var_mat.size() && 
+                       var.var_mat[row_cur][0] == line_vec[0] && 
+                       var.var_mat[row_cur][1] == line_vec[1]) {
+                        process_variant = true;
+                        row_cur++;
+                    }
+                }
+                
+                if (process_variant) {
                     // SEQUENTIAL THRESHOLD HIERARCHY:
                     // Step 1: Apply frequency gates first (cheap filter)
                     double frequency = calculate_variant_frequency(pop, pop_vec, param, row_cur);
@@ -84,8 +94,6 @@ public:
                                             likelihood_score, frequency, variant_info);
                         variant_loci.push_back(variant);
                     }
-                    
-                    row_cur++;
                 }
             }
         }
@@ -159,102 +167,172 @@ private:
         return 1.0; // Placeholder - implement file reading
     }
     
-    // Priority 2: Get SigLh likelihood calculations  
+    // Priority 2: Get SigLh likelihood calculations using frequency product method
     double get_lh_likelihood_score(pop_data& pop, vector<string>& pop_vec, 
                                   input_param& param, int row_cur) {
-        // TODO: Integrate with existing SigLh algorithms
-        // Should reuse existing likelihood calculation infrastructure
+        // Use same frequency product method as Priority 3 but with SigLh integration
+        // For now, implement same HW likelihood calculation
         
-        double max_likelihood = 0.0;
+        double max_log_likelihood = -1e10;
         
-        // Calculate likelihood across populations using proper log-likelihood
+        // Calculate likelihood across populations using HW log-likelihood
         for (const string& pop_name : pop_vec) {
+            // Count genotypes and estimate frequency
+            int n_AA = 0, n_Aa = 0, n_aa = 0;
             int total_samples = 0;
-            int variant_samples = 0;
+            int variant_alleles = 0;
             
             for (set<int>::iterator j = pop.pop_col_dict[pop_name].begin(); 
                  j != pop.pop_col_dict[pop_name].end(); ++j) {
                 
                 if(line_vec[*j][0] == '0' || line_vec[*j][0] == '1') {
                     total_samples++;
-                    variant_samples += check_genotype(line_vec[*j]);
+                    
+                    // Parse genotype: 0/0, 0/1, 1/1
+                    char allele1 = line_vec[*j][0];
+                    char allele2 = line_vec[*j][2];
+                    
+                    if (allele1 == '0' && allele2 == '0') {
+                        n_aa++;
+                    } else if ((allele1 == '0' && allele2 == '1') || (allele1 == '1' && allele2 == '0')) {
+                        n_Aa++;
+                        variant_alleles++;
+                    } else if (allele1 == '1' && allele2 == '1') {
+                        n_AA++;
+                        variant_alleles += 2;
+                    }
                 }
             }
             
             if (total_samples > 0) {
-                double freq = (double)variant_samples / (double)total_samples;
+                double f = (double)variant_alleles / (double)(2 * total_samples);
+                double log_likelihood = calculate_hw_log_likelihood(f, n_AA, n_Aa, n_aa);
                 
-                // TODO: Replace with proper log-likelihood calculation
-                // This should use existing SigLh mathematical framework
-                double pop_likelihood = calculate_log_likelihood(freq, total_samples, variant_samples);
-                
-                max_likelihood = max(max_likelihood, pop_likelihood);
+                max_log_likelihood = max(max_log_likelihood, log_likelihood);
             }
         }
         
-        return max_likelihood;
+        return max_log_likelihood;
     }
     
-    // Priority 3: SigFreq pseudo-likelihood (fallback)
+    // Priority 3: SigFreq frequency product method likelihood
     double get_frequency_pseudo_likelihood(pop_data& pop, vector<string>& pop_vec, 
                                          input_param& param, int row_cur) {
-        // IMPORTANT: Document scale! This should be consistent with Li scale
+        // Frequency product method: log Li = Σ_individuals log P(genotype|frequency)
+        // Uses Hardy-Weinberg genotype probabilities
         
-        double max_likelihood = 0.0;
+        double max_log_likelihood = -1e10; // Start with very negative value
         
         for (const string& pop_name : pop_vec) {
+            // Count genotypes and estimate frequency
+            int n_AA = 0, n_Aa = 0, n_aa = 0; // Genotype counts
             int total_samples = 0;
-            int variant_samples = 0;
+            int variant_alleles = 0;
             
             for (set<int>::iterator j = pop.pop_col_dict[pop_name].begin(); 
                  j != pop.pop_col_dict[pop_name].end(); ++j) {
                 
                 if(line_vec[*j][0] == '0' || line_vec[*j][0] == '1') {
                     total_samples++;
-                    variant_samples += check_genotype(line_vec[*j]);
+                    
+                    // Parse genotype: 0/0, 0/1, 1/1
+                    char allele1 = line_vec[*j][0];
+                    char allele2 = line_vec[*j][2];
+                    
+                    if (allele1 == '0' && allele2 == '0') {
+                        n_aa++; // Homozygous reference (aa)
+                    } else if ((allele1 == '0' && allele2 == '1') || (allele1 == '1' && allele2 == '0')) {
+                        n_Aa++; // Heterozygous (Aa)
+                        variant_alleles++; // Count one variant allele
+                    } else if (allele1 == '1' && allele2 == '1') {
+                        n_AA++; // Homozygous variant (AA)
+                        variant_alleles += 2; // Count two variant alleles
+                    }
                 }
             }
             
             if (total_samples > 0) {
-                double freq = (double)variant_samples / (double)total_samples;
+                // Calculate allele frequency (f = frequency of variant allele A)
+                double f = (double)variant_alleles / (double)(2 * total_samples);
                 
-                // Pseudo-likelihood: frequency deviation from neutral
-                // Scale documented: range [0, 1] for compatibility with other Li sources
-                double pop_likelihood = abs(freq - 0.5) * 2.0;
+                // Calculate log-likelihood using Hardy-Weinberg probabilities
+                double log_likelihood = calculate_hw_log_likelihood(f, n_AA, n_Aa, n_aa);
                 
-                max_likelihood = max(max_likelihood, pop_likelihood);
+                max_log_likelihood = max(max_log_likelihood, log_likelihood);
             }
         }
         
-        return max_likelihood;
+        return max_log_likelihood;
     }
     
-    // Helper: Calculate proper log-likelihood (placeholder for SigLh integration)
+    // Calculate Hardy-Weinberg log-likelihood: log Li = Σ_individuals log P(genotype|frequency)
+    double calculate_hw_log_likelihood(double f, int n_AA, int n_Aa, int n_aa) {
+        // Handle edge cases
+        if (f <= 0.0 || f >= 1.0) {
+            // Return very negative likelihood for impossible frequencies
+            return -1e10;
+        }
+        
+        double log_likelihood = 0.0;
+        
+        // Hardy-Weinberg genotype probabilities:
+        // P(AA|f) = f²
+        // P(Aa|f) = 2f(1-f)  
+        // P(aa|f) = (1-f)²
+        
+        // Add log-likelihood contribution from each genotype class
+        if (n_AA > 0) {
+            log_likelihood += n_AA * log(f * f);
+        }
+        
+        if (n_Aa > 0) {
+            log_likelihood += n_Aa * log(2.0 * f * (1.0 - f));
+        }
+        
+        if (n_aa > 0) {
+            log_likelihood += n_aa * log((1.0 - f) * (1.0 - f));
+        }
+        
+        return log_likelihood;
+    }
+    
+    // Legacy function: Calculate proper log-likelihood (now calls HW version)
     double calculate_log_likelihood(double freq, int total_samples, int variant_samples) {
-        // TODO: Implement proper binomial log-likelihood or integrate with existing SigLh
-        // For now, return scaled frequency deviation as placeholder
-        return abs(freq - 0.5) * 2.0;
+        // Convert allele counts to genotype counts assuming HW equilibrium
+        int n_total_individuals = total_samples;
+        int n_AA_expected = (int)round(freq * freq * n_total_individuals);
+        int n_aa_expected = (int)round((1.0 - freq) * (1.0 - freq) * n_total_individuals);
+        int n_Aa_expected = n_total_individuals - n_AA_expected - n_aa_expected;
+        
+        return calculate_hw_log_likelihood(freq, n_AA_expected, n_Aa_expected, n_aa_expected);
     }
     
-    // Calculate variant frequency (reuse existing logic)
+    // Calculate variant frequency using proper allele frequency calculation
     double calculate_variant_frequency(pop_data& pop, vector<string>& pop_vec, 
                                      input_param& param, int row_cur) {
-        int total_samples = 0;
-        int variant_samples = 0;
+        int total_individuals = 0;
+        int variant_alleles = 0;
         
         for (const string& pop_name : pop_vec) {
             for (set<int>::iterator j = pop.pop_col_dict[pop_name].begin(); 
                  j != pop.pop_col_dict[pop_name].end(); ++j) {
                 
                 if(line_vec[*j][0] == '0' || line_vec[*j][0] == '1') {
-                    total_samples++;
-                    variant_samples += check_genotype(line_vec[*j]);
+                    total_individuals++;
+                    
+                    // Parse genotype: count variant alleles (1) in diploid genotype
+                    char allele1 = line_vec[*j][0];
+                    char allele2 = line_vec[*j][2];
+                    
+                    if (allele1 == '1') variant_alleles++; // First allele is variant
+                    if (allele2 == '1') variant_alleles++; // Second allele is variant
                 }
             }
         }
         
-        if (total_samples > 0) {
-            return (double)variant_samples / (double)total_samples;
+        if (total_individuals > 0) {
+            // Return allele frequency (proportion of variant alleles)
+            return (double)variant_alleles / (double)(2 * total_individuals);
         }
         return 0.0;
     }
@@ -288,10 +366,8 @@ public:
             cout << "Error: Segment bandwidth must be positive." << endl;
             return false;
         }
-        if (param.seg_density_threshold < 0) {
-            cout << "Error: Regional density threshold cannot be negative." << endl;
-            return false;
-        }
+        // Note: Regional density threshold can be negative for log-likelihood scale
+        // No validation needed for density threshold value
         if (param.seg_merge_distance < 0) {
             cout << "Error: Segment merge distance cannot be negative." << endl;
             return false;
