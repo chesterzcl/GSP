@@ -3130,7 +3130,10 @@ class thread_analysis_module{
 				// Get const reference to target variant (thread-safe read)
 				const auto& target_variant = segment_variants[i];
 				
-				// Calculate normalized Gaussian kernel density
+				// Windowed Gaussian kernel density calculation (O(n×k) optimization)
+				const double window_size = 3.0 * bandwidth_sigma;  // 3σ cutoff: ~99.7% of Gaussian mass
+				int neighbors_processed = 0;
+				
 				for (int j = 0; j < variant_count; j++) {
 					// Get const reference to neighbor variant (thread-safe read)
 					const auto& neighbor_variant = segment_variants[j];
@@ -3139,6 +3142,11 @@ class thread_analysis_module{
 					if (target_variant.chromosome != neighbor_variant.chromosome) continue;
 					
 					double distance = abs(neighbor_variant.position - target_variant.position);
+					
+					// Windowing optimization: skip variants beyond 3σ (negligible Gaussian contribution)
+					if (distance > window_size) continue;
+					neighbors_processed++;
+					
 					double exponent = -(distance * distance) / (2.0 * bandwidth_sigma * bandwidth_sigma);
 					double gaussian_weight = exp(exponent);
 					
@@ -3150,6 +3158,12 @@ class thread_analysis_module{
 					
 					weighted_sum += gaussian_weight * phi_Lj * neighbor_variant.likelihood_score;
 					weight_sum += gaussian_weight * phi_Lj;
+				}
+				
+				// Optional debug output for performance verification
+				if (param.verbose && i < 3 && thread_id == 0) {
+					cout << "Variant " << i << " windowing: " << neighbors_processed << "/" << variant_count 
+						 << " neighbors processed (window=" << window_size << "bp)" << endl;
 				}
 				
 				// Compute normalized regional density
